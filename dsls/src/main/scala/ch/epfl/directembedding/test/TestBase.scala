@@ -1,4 +1,6 @@
-package ch.epfl.directembedding
+package ch.epfl.directembedding.test
+
+import ch.epfl.directembedding._
 
 // Intermediate Representation
 trait Exp[T]
