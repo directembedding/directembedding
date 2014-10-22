@@ -1,8 +1,8 @@
-package ch.epfl.directembedding
+package ch.epfl.directembedding.test
 
 import org.scalatest.{ FlatSpec, ShouldMatchers }
 
-class InlineSpec extends FlatSpec with ShouldMatchers {
+class BasicSpec extends FlatSpec with ShouldMatchers {
 
   "lift" should "work object fields" in {
     intercept[scala.NotImplementedError] {
