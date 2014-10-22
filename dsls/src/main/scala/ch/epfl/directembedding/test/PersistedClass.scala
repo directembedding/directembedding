@@ -54,3 +54,23 @@ class PersistedClass {
   @persist(())
   def m[T]: T = ???
 }
+
+object Inlineable {
+  @persist(())
+  def inlineable(x: Int) = {
+    def inner(x: Int) = {
+      def iinner(x: Int) = x
+      iinner(x)
+    }
+
+    val dummyList = List(1, 2, 3) map { case i: Int => i }
+    val res = inner(dummyList.sum)
+    if (res > 2) {
+      x match {
+        case 1 => 1
+      }
+    } else {
+      1
+    }
+  }
+}
