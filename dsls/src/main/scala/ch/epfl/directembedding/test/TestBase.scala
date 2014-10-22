@@ -6,7 +6,7 @@ import ch.epfl.directembedding._
 trait Exp[T]
 case object ValDef extends Exp[Int]
 case object NoArgs extends Exp[Int]
-case class JustTArgs[T, U]() extends Exp[(T, U)]
+case class JustTargs[T, U]() extends Exp[(T, U)]
 case class JustArgs(x: Exp[Int]) extends Exp[Int]
 case class ArgsAndTArgs[T, U](t: Exp[T], u: Exp[U]) extends Exp[(T, U)]
 case class Const[T](x: T) extends Exp[T]
@@ -16,7 +16,7 @@ case class Take[T](self: Exp[TArgClassExampleCase[T]], n: Exp[Int]) extends Exp[
 case class X[T](self: Exp[TArgClassExample[T]]) extends Exp[Int]
 case class Y[T](self: Exp[TArgClassExample[T]]) extends Exp[Int]
 case class TArgsZ[T, U](self: Exp[TArgClassExample[T]]) extends Exp[U]
-case class AppCurry[T](self: Exp[TArgClassExample[T]], p1: Exp[T])(p2: Exp[T]) extends Exp[T]
+case class AppCurry[T](self: Exp[TArgClassExample[T]], p1: Exp[T], p2: Exp[T], p3: Exp[T]*) extends Exp[T]
 case class AppManyArgs[T](self: Exp[TArgClassExample[T]], p1: Exp[T]*) extends Exp[T]
 
 case object ClassCons extends Exp[ClassExample]
@@ -30,8 +30,8 @@ object ObjectExample {
   @reifyAs(NoArgs)
   def noArgs: Int = ???
 
-  @reifyAs(JustTArgs)
-  def justTArgs[T, U]: (T, U) = ???
+  @reifyAs(JustTargs)
+  def justTargs[T, U]: (T, U) = ???
 
   @reifyAs(JustArgs)
   def justArgs(x: Int): Int = ???
@@ -47,7 +47,7 @@ object ObjectExample {
     @reifyAs(NoArgs)
     def noArgs: Int = ???
 
-    @reifyAs(JustTArgs)
+    @reifyAs(JustTargs)
     def justTargs[T, U]: (T, U) = ???
 
     @reifyAs(JustArgs)
@@ -77,7 +77,10 @@ class TArgClassExample[T] {
   def z[T]: T = ???
 
   @reifyAs(AppCurry)
-  def app[T](p1: T)(p2: T): T = ???
+  def appCurry1[T](p1: T)(p2: T): T = ???
+
+  @reifyAs(AppCurry)
+  def appCurry2[T](p1: T)(p2: T)(p3: T): T = ???
 
   @reifyAs(AppManyArgs)
   def app1[T](p1: T*): T = ???

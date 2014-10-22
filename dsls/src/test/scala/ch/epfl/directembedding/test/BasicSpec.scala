@@ -29,8 +29,8 @@ class BasicSpec extends FlatSpec with ShouldMatchers {
   "lift" should "work with object methods with just type arguments" in {
     testReify(implicit collec =>
       lift {
-        ObjectExample.justTArgs[TArgClassExample[Int], TArgClassExample[Int]]
-      }) should be(List(JustTArgs[TArgClassExample[Int], TArgClassExample[Int]]))
+        ObjectExample.justTargs[TArgClassExample[Int], TArgClassExample[Int]]
+      }) should be(List(JustTargs[TArgClassExample[Int], TArgClassExample[Int]]))
   }
 
   "lift" should "work with object methods with just arguments" in {
@@ -44,6 +44,41 @@ class BasicSpec extends FlatSpec with ShouldMatchers {
     testReify(implicit collec =>
       lift {
         ObjectExample.argsAndTArgs[Int, Boolean](1, true)
+      }) should be(List(ArgsAndTArgs[Int, Boolean](Const(1), Const(true))))
+  }
+
+  "lift" should "work nested object fields" in {
+    testReify(implicit collec =>
+      lift {
+        ObjectExample.nested.valDef
+      }) should be(List(ValDef))
+  }
+
+  "lift" should "work with nested object methods without arguments and type arguments" in {
+    testReify(implicit collec =>
+      lift {
+        ObjectExample.nested.noArgs
+      }) should be(List(NoArgs))
+  }
+
+  "lift" should "work with nested object methods with just type arguments" in {
+    testReify(implicit collec =>
+      lift {
+        ObjectExample.nested.justTargs[TArgClassExample[Int], TArgClassExample[Int]]
+      }) should be(List(JustTargs[TArgClassExample[Int], TArgClassExample[Int]]))
+  }
+
+  "lift" should "work with nested object methods with just arguments" in {
+    testReify(implicit collec =>
+      lift {
+        ObjectExample.nested.justArgs(1)
+      }) should be(List(JustArgs(Const(1))))
+  }
+
+  "lift" should "work with nested object methods with arguments and type arguments" in {
+    testReify(implicit collec =>
+      lift {
+        ObjectExample.nested.argsAndTArgs[Int, Boolean](1, true)
       }) should be(List(ArgsAndTArgs[Int, Boolean](Const(1), Const(true))))
   }
 
@@ -103,10 +138,24 @@ class BasicSpec extends FlatSpec with ShouldMatchers {
       }) should be(List(AppManyArgs[Int](TArgClassExampleCase[Int], Const(1), Const(2))))
   }
 
-  "lift" should "work with construction of TArgClassExample" in {
+  "lift" should "work with construction of ClassExample" in {
     testReify(implicit collec =>
       lift {
         new ClassExample
       }) should be(List(ClassCons))
+  }
+
+  "lift" should "work with curry functions" in {
+    testReify(implicit collec =>
+      lift {
+        new TArgClassExample[Int].appCurry1[Int](1)(2)
+      }) should be(List(AppCurry[Int](TArgClassExampleCase[Int], 1, 2)))
+  }
+
+  "lift" should "work with curry functions, twice" in {
+    testReify(implicit collec =>
+      lift {
+        new TArgClassExample[Int].appCurry2[Int](1)(2)(3)
+      }) should be(List(AppCurry[Int](TArgClassExampleCase[Int], 1, 2, 3)))
   }
 }

@@ -66,37 +66,48 @@ protected[directembedding] object Macros {
         fieldOrGetterSym
       }
 
-      def getSelf(x: Tree): List[Tree] = {
-        val self = transform(x)
-        if (x.symbol.isModule) {
-          Nil
+      def getSelf(x: Tree): List[Tree] = x match {
+        case Select(_, _) => Nil
+        case _ =>
+          if (x.symbol.isModule) {
+            Nil
 
-        } else {
-          List(self)
+          } else {
+            List(transform(x))
+          }
+      }
 
-        }
+      def traverserHelper(t: Tree, args: List[Tree]): Tree = t match {
+        case field @ Apply(x, y) =>
+          traverserHelper(x, y ::: args)
+        case _ =>
+          Apply(t, args.map(transform(_)))
       }
 
       override def transform(tree: Tree): Tree = {
         tree match {
-          case Apply(Select(New(newBody), selectY1), args) =>
+          case a @ Apply(Apply(x, y2), y1) =>
+            val t = traverserHelper(a, Nil)
+            transform(t)
+
+          case Apply(Select(New(newBody), y), args) =>
             val listArgs = newBody.tpe.typeArgs
             reify(newBody.symbol, listArgs.map(TypeTree(_)), Nil)
 
-          case Apply(field @ Select(selectX, selectY), args) =>
+          case Apply(field @ Select(x, y), args) =>
             val fieldOrGetterSym = getAnnot(field)
-            val self = getSelf(selectX)
-            reify(fieldOrGetterSym, selectX.tpe.typeArgs.map(TypeTree(_)), self ::: args)
+            val self = getSelf(x)
+            reify(fieldOrGetterSym, x.tpe.typeArgs.map(TypeTree(_)), self ::: args)
 
-          case Apply(TypeApply(field @ Select(selectX, selectY), targs), args) =>
+          case Apply(TypeApply(field @ Select(x, y), targs), args) =>
             val fieldOrGetterSym = getAnnot(field)
-            val self = getSelf(selectX)
+            val self = getSelf(x)
             reify(fieldOrGetterSym, targs.map(transform(_)), self ::: args.map(transform(_)))
 
-          case TypeApply(field @ Select(selectX, selectY), targs) =>
+          case TypeApply(field @ Select(x, y), targs) =>
             val fieldOrGetterSym = getAnnot(field)
-            val self = getSelf(selectX)
-            reify(fieldOrGetterSym, selectX.tpe.typeArgs.map(TypeTree(_)) ::: targs.map(transform(_)), self)
+            val self = getSelf(x)
+            reify(fieldOrGetterSym, x.tpe.typeArgs.map(TypeTree(_)) ::: targs.map(transform(_)), self)
 
           case field @ Select(x, y) =>
             val fieldOrGetterSym = getAnnot(field)
