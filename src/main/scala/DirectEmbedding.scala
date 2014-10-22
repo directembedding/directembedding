@@ -16,7 +16,7 @@ protected[directembedding] object Macros {
     class LiftingTransformer extends Transformer {
       def reify(methodSym: Symbol, targs: Option[List[Tree]], args: Option[List[Tree]]): Tree = {
         val reifyAsAnnot = methodSym.annotations.filter(_.tree.tpe <:< c.typeOf[reifyAs]).head
-        val body = reifyAsAnnot.scalaArgs.head
+        val body = reifyAsAnnot.tree.children.tail.head
         (targs, args) match {
           case (None, None)              => body
           case (Some(targs), None)       => q"${body}.apply[..$targs]"

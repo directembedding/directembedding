@@ -23,7 +23,7 @@ object DirectEmbeddingBuild extends Build {
       "scm:git:git://github.com/directembedding/directembedding.git"))
   )
 
-  lazy val scalaSettings = Defaults.defaultSettings ++ Seq(
+  lazy val scalaSettings = Defaults.coreDefaultSettings ++ Seq(
     scalaOrganization    := scalaOrg,
     scalaVersion         := "2.11.2",
     crossScalaVersions := Seq("2.11.0", "2.11.1", "2.11.2"),
