@@ -58,12 +58,11 @@ package object test {
       }
 
       val annotArg = methodSym.annotations.filter(_.tree.tpe <:< c.typeOf[persist]).head.tree.children.tail.head
-      println(showRaw(annotArg, printIds = true))
       val q"""(new ch.epfl.directembedding.MethodTree({
         $tree;
         ()}): ${ _ })""" = annotArg
-      val res = Macros.inlineMethod(c)(tree, args)
-      println(show(res))
+
+      val res = Macros.inlineMethod(c)(tree, args, methodSym.asMethod.paramss.head)
       c.Expr[T](res)
     }
   }

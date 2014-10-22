@@ -42,7 +42,7 @@ class PersistenceSpec extends FlatSpec with ShouldMatchers {
   }
 
   it should "be possible to inline persisted methods" in {
-    inline(new PersistedClass().m(1)) should be(1)
+    inline(Inlineable.inlineable({ def x = 1; x })) should be(1)
   }
 
 }
