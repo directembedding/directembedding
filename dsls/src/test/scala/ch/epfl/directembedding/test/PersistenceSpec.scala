@@ -2,7 +2,7 @@ package ch.epfl.directembedding.test
 import org.scalatest.{ FlatSpec, ShouldMatchers }
 
 class PersistenceSpec extends FlatSpec with ShouldMatchers {
-  "Trees of @persist annotated methods" should "be persisted for objects" in {
+  "Trees of @persist(()) annotated methods" should "be persisted for objects" in {
     persisted(PersistedObject.m) should be(
       """DefDef(Modifiers(), TermName("m"), List(), List(), TypeTree(), Literal(Constant(1)))""")
     persisted(PersistedObject.y) should be(
@@ -40,4 +40,9 @@ class PersistenceSpec extends FlatSpec with ShouldMatchers {
     persisted(new PersistedClass().m[Int]) should be(
       """DefDef(Modifiers(), TermName("m"), List(TypeDef(Modifiers(PARAM), TypeName("T"), List(), TypeTree())), List(), TypeTree(), Select(Select(This(TypeName("scala")), scala.Predef), TermName("$qmark$qmark$qmark")))""")
   }
+
+  it should "be possible to inline persisted methods" in {
+    inline(new PersistedClass().m(1)) should be(1)
+  }
+
 }
