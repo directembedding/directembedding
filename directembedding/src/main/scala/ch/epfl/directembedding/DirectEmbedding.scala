@@ -9,42 +9,115 @@ class persist(id: MethodTree) extends scala.annotation.StaticAnnotation
 
 protected[directembedding] object Macros {
 
+  def inlineMethod(c: Context)(f: c.Tree, args: List[c.Tree], params: List[c.Symbol]): c.Tree = {
+    import c.universe._
+    import internal._, decorators._
+    val q"def ${ _ }(..$params2): $tpe = $body" = f
+    val paramsMap = (params zip args).map {
+      case (param, arg) =>
+        val temp = c.freshName(TermName(param.name.toString))
+        val tempSym = c.internal.enclosingOwner.newTermSymbol(temp).setInfo(arg.tpe.widen)
+        val valDef = c.internal.valDef(tempSym, c.internal.changeOwner(arg, c.internal.enclosingOwner, tempSym))
+
+        (param.symbol, (tempSym, valDef))
+    }.toMap
+
+    // put a name of the val
+    val inlinedBody = c.internal.typingTransform(body)((tree, api) => tree match {
+      case i @ Ident(_) if paramsMap contains tree.symbol =>
+        val sym = paramsMap(tree.symbol)._1
+        api.typecheck(q"$sym")
+      case _ =>
+        api.default(tree)
+    })
+
+    q"""{
+      ..${paramsMap.values.map(_._2)}
+      ${c.untypecheck(inlinedBody)}
+    }"""
+  }
+
   def lift[T](c: Context)(block: c.Expr[T]): c.Expr[T] = {
     import c.universe._
-
     /**
      * Transforms methods to their domain-specific IR specified by
      * `reifyAt` annotations.
      */
     class LiftingTransformer extends Transformer {
-      def reify(methodSym: Symbol, targs: Option[List[Tree]], args: Option[List[Tree]]): Tree = {
+      def reify(methodSym: Symbol, targs: List[Tree], args: List[Tree]): Tree = {
         val reifyAsAnnot = methodSym.annotations.filter(_.tree.tpe <:< c.typeOf[reifyAs]).head
         val body = reifyAsAnnot.tree.children.tail.head
 
         (targs, args) match {
-          case (None, None)              => body
-          case (Some(targs), None)       => q"${body}.apply[..$targs]"
-          case (None, Some(args))        => q"${body}.apply(..$args)"
-          case (Some(targs), Some(args)) => q"${body}.apply[..$targs](..$args)"
+          case (Nil, Nil)    => body
+          case (targs, Nil)  => q"${body}.apply[..$targs]"
+          case (Nil, args)   => q"${body}.apply(..$args)"
+          case (targs, args) => q"${body}.apply[..$targs](..$args)"
         }
       }
 
-      override def transform(tree: Tree): Tree = tree match {
-        case Apply(TypeApply(x, targs), args) =>
-          reify(x.symbol, Some(targs.map(transform(_))), Some(args.map(transform(_))))
-        case Apply(x, args) =>
-          reify(x.symbol, None, Some(args.map(transform(_))))
-        case TypeApply(x, targs) =>
-          reify(x.symbol, Some(targs.map(transform(_))), None)
-        case field @ Select(x, y) =>
-          val symbolAnnotations = field.symbol.annotations.filter(_.tree.tpe <:< c.typeOf[reifyAs])
-          val fieldOrGetterSym = if (symbolAnnotations.isEmpty)
-            // unfortunately the annotation goes only to the getter
-            field.symbol.owner.info.members.filter(x => x.name.toString == field.symbol.name + " ").head
-          else field.symbol
-          reify(fieldOrGetterSym, None, None)
+      def getAnnot(field: Select): Symbol = {
+        val symbolAnnotations = field.symbol.annotations.filter(_.tree.tpe <:< c.typeOf[reifyAs])
+        val fieldOrGetterSym = if (symbolAnnotations.isEmpty)
+          // unfortunately the annotation goes only to the getter
+          field.symbol.owner.info.members.filter(x => x.name.toString == field.symbol.name + " ").head
+        else field.symbol
+
+        fieldOrGetterSym
+      }
+
+      def getSelf(x: Tree): List[Tree] = x match {
+        case Select(_, _) => Nil
         case _ =>
-          super.transform(tree)
+          val self = transform(x)
+          if (x.symbol.isModule) {
+            Nil
+
+          } else {
+            List(self)
+          }
+      }
+
+      def traverserHelper(t: Tree, args: List[Tree]): Tree = t match {
+        case field @ Apply(x, y) =>
+          traverserHelper(x, y ::: args)
+        case _ =>
+          Apply(t, args.map(transform(_)))
+      }
+
+      override def transform(tree: Tree): Tree = {
+        tree match {
+          case a @ Apply(Apply(x, y2), y1) =>
+            val t = traverserHelper(a, Nil)
+            transform(t)
+
+          case Apply(Select(New(newBody), y), args) =>
+            val listArgs = newBody.tpe.typeArgs
+            reify(newBody.symbol, listArgs.map(TypeTree(_)), Nil)
+
+          case Apply(field @ Select(x, y), args) =>
+            val fieldOrGetterSym = getAnnot(field)
+            val self = getSelf(x)
+            reify(fieldOrGetterSym, x.tpe.typeArgs.map(TypeTree(_)), self ::: args)
+
+          case Apply(TypeApply(field @ Select(x, y), targs), args) =>
+            val fieldOrGetterSym = getAnnot(field)
+            val self = getSelf(x)
+            reify(fieldOrGetterSym, targs.map(transform(_)), self ::: args.map(transform(_)))
+
+          case TypeApply(field @ Select(x, y), targs) =>
+            val fieldOrGetterSym = getAnnot(field)
+            val self = getSelf(x)
+            reify(fieldOrGetterSym, x.tpe.typeArgs.map(TypeTree(_)) ::: targs.map(transform(_)), self)
+
+          case field @ Select(x, y) =>
+            val fieldOrGetterSym = getAnnot(field)
+            val self = getSelf(x)
+            reify(fieldOrGetterSym, x.tpe.typeArgs.map(TypeTree(_)), self)
+
+          case x =>
+            super.transform(tree)
+        }
       }
     }
 
