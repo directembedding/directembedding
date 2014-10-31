@@ -5,10 +5,25 @@ import scala.reflect.macros.blackbox.Context
 package object test {
   // For our DSL
   def lift[T](block: T): T = macro Macros.lift[T]
-  def compile[T](exp: Exp[T]): T = {
-    println(exp)
+
+  trait Collector {
+    def add[T](ast: Exp[T])
+  }
+
+  implicit object collector extends Collector {
+    var c: Seq[Exp[_]] = Seq()
+    def add[T](ast: Exp[T]) = {
+      c = c :+ ast
+    }
+  }
+
+  def compile[T](ast: Exp[T])(implicit collector: Collector): T = {
+    // def compile[T](ast: Exp[T]): T = {
+    collector.add[T](ast)
+    println("Compile => " + ast)
     ???
   }
+
   implicit def liftConstant[T](x: T): Exp[T] = Const(x)
 
   // For testing purposes
@@ -62,7 +77,7 @@ package object test {
         $tree;
         ()}): ${ _ })""" = annotArg
 
-      val res = Macros.inlineMethod(c)(tree, args, methodSym.asMethod.paramss.head)
+      val res = Macros.inlineMethod(c)(tree, args, methodSym.asMethod.paramLists.head)
       c.Expr[T](res)
     }
   }

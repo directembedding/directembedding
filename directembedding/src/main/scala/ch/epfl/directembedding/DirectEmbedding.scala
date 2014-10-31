@@ -15,7 +15,7 @@ protected[directembedding] object Macros {
     val q"def ${ _ }(..$params2): $tpe = $body" = f
     val paramsMap = (params zip args).map {
       case (param, arg) =>
-        val temp = c.fresh(newTermName(param.name.toString))
+        val temp = c.freshName(TermName(param.name.toString))
         val tempSym = c.internal.enclosingOwner.newTermSymbol(temp).setInfo(arg.tpe.widen)
         val valDef = c.internal.valDef(tempSym, c.internal.changeOwner(arg, c.internal.enclosingOwner, tempSym))
 
@@ -56,26 +56,40 @@ protected[directembedding] object Macros {
         }
       }
 
-      override def transform(tree: Tree): Tree = tree match {
-        case Apply(TypeApply(x, targs), args) =>
-          reify(x.symbol, Some(targs.map(transform(_))), Some(args.map(transform(_))))
-        case Apply(x, args) =>
-          reify(x.symbol, None, Some(args.map(transform(_))))
-        case TypeApply(x, targs) =>
-          reify(x.symbol, Some(targs.map(transform(_))), None)
-        case field @ Select(x, y) =>
-          val symbolAnnotations = field.symbol.annotations.filter(_.tree.tpe <:< c.typeOf[reifyAs])
-          val fieldOrGetterSym = if (symbolAnnotations.isEmpty)
-            // unfortunately the annotation goes only to the getter
-            field.symbol.owner.info.members.filter(x => x.name.toString == field.symbol.name + " ").head
-          else field.symbol
-          reify(fieldOrGetterSym, None, None)
-        case _ =>
-          super.transform(tree)
+      override def transform(tree: Tree): Tree = {
+        println("***TREE => \n" + showRaw(tree) + "\n")
+
+        tree match {
+          case Apply(TypeApply(x, targs), args) =>
+            reify(x.symbol, Some(targs.map(transform(_))), Some(args.map(transform(_))))
+
+          case Apply(x, args) =>
+            reify(x.symbol, None, Some(args.map(transform(_))))
+
+          case TypeApply(x, targs) =>
+            reify(x.symbol, Some(targs.map(transform(_))), None)
+
+          case Select(Apply(Select(New(clas), y), args), xx) =>
+            println("***NEW***")
+            super.transform(tree)
+
+          case field @ Select(x, y) =>
+            val symbolAnnotations = field.symbol.annotations.filter(_.tree.tpe <:< c.typeOf[reifyAs])
+            val fieldOrGetterSym = if (symbolAnnotations.isEmpty)
+              // unfortunately the annotation goes only to the getter
+              field.symbol.owner.info.members.filter(x => x.name.toString == field.symbol.name + " ").head
+            else field.symbol
+            reify(fieldOrGetterSym, None, None)
+
+          case x =>
+            println("***call super transform***" + showRaw(x))
+            super.transform(tree)
+        }
       }
     }
 
     val reified = new LiftingTransformer().transform(block.tree)
+
     c.Expr[T](q"_root_.ch.epfl.directembedding.test.compile($reified)")
   }
 
