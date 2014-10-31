@@ -11,10 +11,19 @@ case class JustArgs(x: Exp[Int]) extends Exp[Int]
 case class ArgsAndTArgs[T, U](t: Exp[T], u: Exp[U]) extends Exp[(T, U)]
 case class Const[T](x: T) extends Exp[T]
 
+case object Size extends Exp[Int]
+case object Take extends Exp[Int]
+case object X extends Exp[Int]
+case object Y extends Exp[Int]
+case class TArgsZ[T]() extends Exp[T]
+case class AppCurry[T](p1: Exp[T])(p2: Exp[T]) extends Exp[T]
+case class AppManyArgs[T](p1: Exp[T]*) extends Exp[T]
+
 // Example Object with all corner cases.
 object ObjectExample {
   @reifyAs(ValDef)
   val valDef: Int = ???
+
   @reifyAs(NoArgs)
   def noArgs: Int = ???
 
@@ -26,10 +35,12 @@ object ObjectExample {
 
   @reifyAs(ArgsAndTArgs)
   def argsAndTArgs[T, U](t: T, u: U): (T, U) = ???
+
   // TODO nested objects
   object nested {
     @reifyAs(ValDef)
     val valDef: Int = ???
+
     @reifyAs(NoArgs)
     def noArgs: Int = ???
 
@@ -41,17 +52,31 @@ object ObjectExample {
 
     @reifyAs(ArgsAndTArgs)
     def argsAndTArgs[T, U](t: T, u: U): (T, U) = ???
+
   }
 }
 
 // TODO
 class TArgClassExample[T] {
+  @reifyAs(Size)
   def size: Int = ???
+
+  @reifyAs(Take)
   def take(n: Int): TArgClassExample[T] = ???
+
+  @reifyAs(X)
   val x: Int = ???
+
+  @reifyAs(Y)
   def y: Int = ???
+
+  @reifyAs(TArgsZ)
   def z[T]: T = ???
+
+  @reifyAs(AppCurry)
   def app[T](p1: T)(p2: T): T = ???
+
+  @reifyAs(AppManyArgs)
   def app1[T](p1: T*): T = ???
 }
 
