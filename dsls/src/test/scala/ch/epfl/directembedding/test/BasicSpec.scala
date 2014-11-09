@@ -4,79 +4,47 @@ import org.scalatest.{ FlatSpec, ShouldMatchers }
 
 class BasicSpec extends FlatSpec with ShouldMatchers {
 
-  //OK
-  "lift" should "work object fields" in {
+  def testReify(body: Collector => Exp[_]): Seq[Exp[_]] = {
+    implicit val collec: Collector = new CollectClass()
     intercept[scala.NotImplementedError] {
+      body(collec)
+    }
+    collec.get
+  }
+
+  "lift" should "work object fields" in {
+    testReify(implicit collec =>
       lift {
         ObjectExample.valDef
-      }
-    }
+      }) should be(List(ValDef))
   }
 
-  // "lift" should "work object fields" in {
-  //   intercept[scala.NotImplementedError]{
-  //     lift {
-  //       ObjectExample.valDef
-  //     }
-  //   }
-  //   should be (
-  //     """_root_.ch.epfl.directembedding.test.compile(ValDef)"""
-  //   )
-  // }
-
-  //OK
-  it should "work with object methods without arguments and type arguments" in {
-    intercept[scala.NotImplementedError] {
+  "lift" should "work with object methods without arguments and type arguments" in {
+    testReify(implicit collec =>
       lift {
         ObjectExample.noArgs
-      }
-    }
+      }) should be(List(NoArgs))
   }
 
-  //OK
-  it should "work with object methods with just type arguments" in {
-    intercept[scala.NotImplementedError] {
+  "lift" should "work with object methods with just type arguments" in {
+    testReify(implicit collec =>
       lift {
-        ObjectExample.justTargs[TArgClassExample[Int], TArgClassExample[Int]]
-      }
-    }
+        ObjectExample.justTArgs[TArgClassExample[Int], TArgClassExample[Int]]
+      }) should be(List(JustTArgs[TArgClassExample[Int], TArgClassExample[Int]]))
   }
 
-  //OK
-  it should "work with object methods with just arguments" in {
-    intercept[scala.NotImplementedError] {
+  "lift" should "work with object methods with just arguments" in {
+    testReify(implicit collec =>
       lift {
         ObjectExample.justArgs(1)
-      }
-    }
+      }) should be(List(JustArgs(Const(1))))
   }
 
-  //OK
-  it should "work with object methods with arguments and type arguments" in {
-    intercept[scala.NotImplementedError] {
+  "lift" should "work with object methods with arguments and type arguments" in {
+    testReify(implicit collec =>
       lift {
         ObjectExample.argsAndTArgs[Int, Boolean](1, true)
-      }
-    }
+      }) should be(List(ArgsAndTArgs(Const(1), Const(true))))
   }
-
-  //// Nested ////
-  //OK
-  it should "work with object methods with nested arguments" in {
-    intercept[scala.NotImplementedError] {
-      lift {
-        ObjectExample.nested.justArgs(1)
-      }
-    }
-  }
-
-  // TArgClassExample
-  // it should "work with TArgClassExample methods with size" in {
-  //   intercept[scala.NotImplementedError] {
-  //     lift {
-  //       new TArgClassExample[Int].size
-  //     }
-  //   }
-  // }
 
 }

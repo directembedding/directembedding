@@ -8,17 +8,20 @@ package object test {
 
   trait Collector {
     def add[T](ast: Exp[T])
+    def get: Seq[Exp[_]]
   }
 
-  implicit object collector extends Collector {
+  class CollectClass extends Collector {
     var c: Seq[Exp[_]] = Seq()
+
     def add[T](ast: Exp[T]) = {
       c = c :+ ast
     }
+
+    def get: Seq[Exp[_]] = c
   }
 
   def compile[T](ast: Exp[T])(implicit collector: Collector): T = {
-    // def compile[T](ast: Exp[T]): T = {
     collector.add[T](ast)
     println("Compile => " + ast)
     ???

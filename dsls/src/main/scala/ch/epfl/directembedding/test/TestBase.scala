@@ -28,7 +28,7 @@ object ObjectExample {
   def noArgs: Int = ???
 
   @reifyAs(JustTArgs)
-  def justTargs[T, U]: (T, U) = ???
+  def justTArgs[T, U]: (T, U) = ???
 
   @reifyAs(JustArgs)
   def justArgs(x: Int): Int = ???
