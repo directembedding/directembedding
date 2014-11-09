@@ -57,8 +57,6 @@ protected[directembedding] object Macros {
       }
 
       override def transform(tree: Tree): Tree = {
-        println("***TREE => \n" + showRaw(tree) + "\n")
-
         tree match {
           case Apply(TypeApply(x, targs), args) =>
             reify(x.symbol, Some(targs.map(transform(_))), Some(args.map(transform(_))))
@@ -69,10 +67,6 @@ protected[directembedding] object Macros {
           case TypeApply(x, targs) =>
             reify(x.symbol, Some(targs.map(transform(_))), None)
 
-          case Select(Apply(Select(New(clas), y), args), xx) =>
-            println("***NEW***")
-            super.transform(tree)
-
           case field @ Select(x, y) =>
             val symbolAnnotations = field.symbol.annotations.filter(_.tree.tpe <:< c.typeOf[reifyAs])
             val fieldOrGetterSym = if (symbolAnnotations.isEmpty)
@@ -82,7 +76,6 @@ protected[directembedding] object Macros {
             reify(fieldOrGetterSym, None, None)
 
           case x =>
-            println("***call super transform***" + showRaw(x))
             super.transform(tree)
         }
       }
@@ -90,6 +83,7 @@ protected[directembedding] object Macros {
 
     val reified = new LiftingTransformer().transform(block.tree)
 
+    println("MACRO =>" + reified)
     c.Expr[T](q"_root_.ch.epfl.directembedding.test.compile($reified)")
   }
 
