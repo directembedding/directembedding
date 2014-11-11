@@ -82,8 +82,6 @@ protected[directembedding] object Macros {
     }
 
     val reified = new LiftingTransformer().transform(block.tree)
-
-    println("MACRO =>" + reified)
     c.Expr[T](q"_root_.ch.epfl.directembedding.test.compile($reified)")
   }
 
