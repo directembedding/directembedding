@@ -58,6 +58,9 @@ protected[directembedding] object Macros {
 
       override def transform(tree: Tree): Tree = {
         tree match {
+          case field @ Apply(Select(New(newBody), selectY1), applyY1) =>
+            reify(newBody.symbol, None, None)
+
           case Apply(TypeApply(x, targs), args) =>
             reify(x.symbol, Some(targs.map(transform(_))), Some(args.map(transform(_))))
 

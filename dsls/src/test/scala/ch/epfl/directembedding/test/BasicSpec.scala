@@ -47,4 +47,17 @@ class BasicSpec extends FlatSpec with ShouldMatchers {
       }) should be(List(ArgsAndTArgs(Const(1), Const(true))))
   }
 
+  "lift" should "work with TArgClassExample methods with size" in {
+    testReify(implicit collec =>
+      lift {
+        new TArgClassExample[Int].size
+      }) should be(List(Size))
+  }
+
+  "lift" should "work with construction of TArgClassExample" in {
+    testReify(implicit collec =>
+      lift {
+        new ClassExample
+      }) should be(List(ClassCons))
+  }
 }

@@ -10,6 +10,7 @@ case class JustTArgs[T, U]() extends Exp[(T, U)]
 case class JustArgs(x: Exp[Int]) extends Exp[Int]
 case class ArgsAndTArgs[T, U](t: Exp[T], u: Exp[U]) extends Exp[(T, U)]
 case class Const[T](x: T) extends Exp[T]
+case object ClassCons
 
 case object Size extends Exp[Int]
 case object Take extends Exp[Int]
@@ -81,5 +82,8 @@ class TArgClassExample[T] {
 }
 
 // TODO
+@reifyAs(ClassCons)
 class ClassExample {
+  val valX = 1
 }
+
