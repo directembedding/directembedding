@@ -23,7 +23,6 @@ package object test {
 
   def compile[T](ast: Exp[T])(implicit collector: Collector): T = {
     collector.add[T](ast)
-    println("Compile => " + ast)
     ???
   }
 
