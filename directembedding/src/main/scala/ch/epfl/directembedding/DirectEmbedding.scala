@@ -9,9 +9,36 @@ class persist(id: MethodTree) extends scala.annotation.StaticAnnotation
 
 protected[directembedding] object Macros {
 
+  def inlineMethod(c: Context)(f: c.Tree, args: List[c.Tree], params: List[c.Symbol]): c.Tree = {
+    import c.universe._
+    import internal._, decorators._
+    val q"def ${ _ }(..$params2): $tpe = $body" = f
+    val paramsMap = (params zip args).map {
+      case (param, arg) =>
+        val temp = c.freshName(TermName(param.name.toString))
+        val tempSym = c.internal.enclosingOwner.newTermSymbol(temp).setInfo(arg.tpe.widen)
+        val valDef = c.internal.valDef(tempSym, c.internal.changeOwner(arg, c.internal.enclosingOwner, tempSym))
+
+        (param.symbol, (tempSym, valDef))
+    }.toMap
+
+    // put a name of the val
+    val inlinedBody = c.internal.typingTransform(body)((tree, api) => tree match {
+      case i @ Ident(_) if paramsMap contains tree.symbol =>
+        val sym = paramsMap(tree.symbol)._1
+        api.typecheck(q"$sym")
+      case _ =>
+        api.default(tree)
+    })
+
+    q"""{
+      ..${paramsMap.values.map(_._2)}
+      ${c.untypecheck(inlinedBody)}
+    }"""
+  }
+
   def lift[T](c: Context)(block: c.Expr[T]): c.Expr[T] = {
     import c.universe._
-
     /**
      * Transforms methods to their domain-specific IR specified by
      * `reifyAt` annotations.
@@ -29,22 +56,28 @@ protected[directembedding] object Macros {
         }
       }
 
-      override def transform(tree: Tree): Tree = tree match {
-        case Apply(TypeApply(x, targs), args) =>
-          reify(x.symbol, Some(targs.map(transform(_))), Some(args.map(transform(_))))
-        case Apply(x, args) =>
-          reify(x.symbol, None, Some(args.map(transform(_))))
-        case TypeApply(x, targs) =>
-          reify(x.symbol, Some(targs.map(transform(_))), None)
-        case field @ Select(x, y) =>
-          val symbolAnnotations = field.symbol.annotations.filter(_.tree.tpe <:< c.typeOf[reifyAs])
-          val fieldOrGetterSym = if (symbolAnnotations.isEmpty)
-            // unfortunately the annotation goes only to the getter
-            field.symbol.owner.info.members.filter(x => x.name.toString == field.symbol.name + " ").head
-          else field.symbol
-          reify(fieldOrGetterSym, None, None)
-        case _ =>
-          super.transform(tree)
+      override def transform(tree: Tree): Tree = {
+        tree match {
+          case Apply(TypeApply(x, targs), args) =>
+            reify(x.symbol, Some(targs.map(transform(_))), Some(args.map(transform(_))))
+
+          case Apply(x, args) =>
+            reify(x.symbol, None, Some(args.map(transform(_))))
+
+          case TypeApply(x, targs) =>
+            reify(x.symbol, Some(targs.map(transform(_))), None)
+
+          case field @ Select(x, y) =>
+            val symbolAnnotations = field.symbol.annotations.filter(_.tree.tpe <:< c.typeOf[reifyAs])
+            val fieldOrGetterSym = if (symbolAnnotations.isEmpty)
+              // unfortunately the annotation goes only to the getter
+              field.symbol.owner.info.members.filter(x => x.name.toString == field.symbol.name + " ").head
+            else field.symbol
+            reify(fieldOrGetterSym, None, None)
+
+          case x =>
+            super.transform(tree)
+        }
       }
     }
 
