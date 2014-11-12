@@ -54,6 +54,55 @@ class BasicSpec extends FlatSpec with ShouldMatchers {
       }) should be(List(Size))
   }
 
+  "lift" should "work with TArgClassExample methods with take" in {
+    testReify(implicit collec =>
+      lift {
+        new TArgClassExample[Int].take(3)
+      }) should be(List(Take(3)))
+  }
+
+  "lift" should "work with TArgClassExample methods with val x" in {
+    testReify(implicit collec =>
+      lift {
+        new TArgClassExample[Int].x
+      }) should be(List(X))
+  }
+
+  "lift" should "work with TArgClassExample methods with val y" in {
+    testReify(implicit collec =>
+      lift {
+        new TArgClassExample[Int].y
+      }) should be(List(Y))
+  }
+
+  "lift" should "work with TArgClassExample methods with method type" in {
+    testReify(implicit collec =>
+      lift {
+        new TArgClassExample[Int].z[Boolean]
+      }) should be(List(TArgsZ[Boolean]()))
+  }
+
+  "lift" should "work with TArgClassExample methods with app 0 args" in {
+    testReify(implicit collec =>
+      lift {
+        new TArgClassExample[Int].app1[Int]()
+      }) should be(List(AppManyArgs[Int]()))
+  }
+
+  "lift" should "work with TArgClassExample methods with app 1 args" in {
+    testReify(implicit collec =>
+      lift {
+        new TArgClassExample[Int].app1[Int](1)
+      }) should be(List(AppManyArgs[Int](Const(1))))
+  }
+
+  "lift" should "work with TArgClassExample methods with app many args" in {
+    testReify(implicit collec =>
+      lift {
+        new TArgClassExample[Int].app1[Int](1, 2)
+      }) should be(List(AppManyArgs[Int](Const(1), Const(2))))
+  }
+
   "lift" should "work with construction of TArgClassExample" in {
     testReify(implicit collec =>
       lift {
