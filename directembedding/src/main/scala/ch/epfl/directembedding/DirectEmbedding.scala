@@ -44,36 +44,62 @@ protected[directembedding] object Macros {
      * `reifyAt` annotations.
      */
     class LiftingTransformer extends Transformer {
-      def reify(methodSym: Symbol, targs: Option[List[Tree]], args: Option[List[Tree]]): Tree = {
+      def reify(methodSym: Symbol, targs: List[Tree], args: List[Tree]): Tree = {
         val reifyAsAnnot = methodSym.annotations.filter(_.tree.tpe <:< c.typeOf[reifyAs]).head
         val body = reifyAsAnnot.tree.children.tail.head
 
         (targs, args) match {
-          case (None, None)              => body
-          case (Some(targs), None)       => q"${body}.apply[..$targs]"
-          case (None, Some(args))        => q"${body}.apply(..$args)"
-          case (Some(targs), Some(args)) => q"${body}.apply[..$targs](..$args)"
+          case (Nil, Nil)    => body
+          case (targs, Nil)  => q"${body}.apply[..$targs]"
+          case (Nil, args)   => q"${body}.apply(..$args)"
+          case (targs, args) => q"${body}.apply[..$targs](..$args)"
+        }
+      }
+
+      def getAnnot(field: Select): Symbol = {
+        val symbolAnnotations = field.symbol.annotations.filter(_.tree.tpe <:< c.typeOf[reifyAs])
+        val fieldOrGetterSym = if (symbolAnnotations.isEmpty)
+          // unfortunately the annotation goes only to the getter
+          field.symbol.owner.info.members.filter(x => x.name.toString == field.symbol.name + " ").head
+        else field.symbol
+
+        fieldOrGetterSym
+      }
+
+      def getSelf(x: Tree): List[Tree] = {
+        val self = transform(x)
+        if (x.symbol.isModule) {
+          Nil
+        } else {
+          List(self)
         }
       }
 
       override def transform(tree: Tree): Tree = {
         tree match {
-          case Apply(TypeApply(x, targs), args) =>
-            reify(x.symbol, Some(targs.map(transform(_))), Some(args.map(transform(_))))
+          case Apply(Select(New(newBody), selectY1), args) =>
+            val listArgs = newBody.tpe.typeArgs
+            reify(newBody.symbol, listArgs.map(TypeTree(_)), Nil)
 
-          case Apply(x, args) =>
-            reify(x.symbol, None, Some(args.map(transform(_))))
+          case Apply(field @ Select(selectX, selectY), args) =>
+            val fieldOrGetterSym = getAnnot(field)
+            val self = getSelf(selectX)
+            reify(fieldOrGetterSym, selectX.tpe.typeArgs.map(TypeTree(_)), self ::: args)
 
-          case TypeApply(x, targs) =>
-            reify(x.symbol, Some(targs.map(transform(_))), None)
+          case Apply(TypeApply(field @ Select(selectX, selectY), targs), args) =>
+            val fieldOrGetterSym = getAnnot(field)
+            val self = getSelf(selectX)
+            reify(fieldOrGetterSym, targs.map(transform(_)), self ::: args.map(transform(_)))
+
+          case TypeApply(field @ Select(selectX, selectY), targs) =>
+            val fieldOrGetterSym = getAnnot(field)
+            val self = getSelf(selectX)
+            reify(fieldOrGetterSym, selectX.tpe.typeArgs.map(TypeTree(_)) ::: targs.map(transform(_)), self)
 
           case field @ Select(x, y) =>
-            val symbolAnnotations = field.symbol.annotations.filter(_.tree.tpe <:< c.typeOf[reifyAs])
-            val fieldOrGetterSym = if (symbolAnnotations.isEmpty)
-              // unfortunately the annotation goes only to the getter
-              field.symbol.owner.info.members.filter(x => x.name.toString == field.symbol.name + " ").head
-            else field.symbol
-            reify(fieldOrGetterSym, None, None)
+            val fieldOrGetterSym = getAnnot(field)
+            val self = getSelf(x)
+            reify(fieldOrGetterSym, x.tpe.typeArgs.map(TypeTree(_)), self)
 
           case x =>
             super.transform(tree)

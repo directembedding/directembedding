@@ -11,13 +11,17 @@ case class JustArgs(x: Exp[Int]) extends Exp[Int]
 case class ArgsAndTArgs[T, U](t: Exp[T], u: Exp[U]) extends Exp[(T, U)]
 case class Const[T](x: T) extends Exp[T]
 
-case object Size extends Exp[Int]
-case object Take extends Exp[Int]
-case object X extends Exp[Int]
-case object Y extends Exp[Int]
-case class TArgsZ[T]() extends Exp[T]
-case class AppCurry[T](p1: Exp[T])(p2: Exp[T]) extends Exp[T]
-case class AppManyArgs[T](p1: Exp[T]*) extends Exp[T]
+case object ClassCons extends Exp[ClassExample]
+
+case class Size[T](self: Exp[TArgClassExampleCase[T]]) extends Exp[Int]
+case class Take[T](self: Exp[TArgClassExampleCase[T]], n: Exp[Int]) extends Exp[TArgClassExample[T]]
+case class X[T](self: Exp[TArgClassExample[T]]) extends Exp[Int]
+case class Y[T](self: Exp[TArgClassExample[T]]) extends Exp[Int]
+case class TArgsZ[T, U](self: Exp[TArgClassExample[T]]) extends Exp[U]
+case class AppCurry[T](self: Exp[TArgClassExample[T]], p1: Exp[T])(p2: Exp[T]) extends Exp[T]
+case class AppManyArgs[T](self: Exp[TArgClassExample[T]], p1: Exp[T]*) extends Exp[T]
+
+case class TArgClassExampleCase[T]() extends Exp[TArgClassExample[T]]
 
 // Example Object with all corner cases.
 object ObjectExample {
@@ -56,7 +60,7 @@ object ObjectExample {
   }
 }
 
-// TODO
+@reifyAs(TArgClassExampleCase)
 class TArgClassExample[T] {
   @reifyAs(Size)
   def size: Int = ???
@@ -80,6 +84,7 @@ class TArgClassExample[T] {
   def app1[T](p1: T*): T = ???
 }
 
-// TODO
+@reifyAs(ClassCons)
 class ClassExample {
+  val dummyVal: Int = 1
 }
