@@ -79,9 +79,9 @@ Furthermore, it also benefits the developpers of DSL because DirectEmbedding han
 ### Project Structure
 | Component                                   		  | Description                        | 
 |:---------                                   		  |:-----------                        | 
-| `directembedding/...` <br> `/DirectEmbedding.scala` | Core code: reifying code with macro | 
-| `dsls/main/.../BasicSpec.scala`             		  | Intermediate Representation        | 
-| `dsls/test/.../TestBase.scala`              		  | Corners cases tests                | 
+| `directembedding/...` <br> `/DirectEmbedding.scala` | **DirectEmbedding code:** reification code with macro | 
+| `dsls/main/.../BasicSpec.scala`             		  | **Test:** Intermediate Representation        | 
+| `dsls/test/.../TestBase.scala`              		  | **Test:** Corners cases tests                | 
 
 ## Usage
 The project has been tested under [Sbt 0.13.6](http://www.scala-sbt.org/) and [Scala 2.11.2](http://www.scala-lang.org/)
