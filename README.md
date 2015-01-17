@@ -1,41 +1,85 @@
-Direct Embedding for Scala [![Build Status](https://travis-ci.org/directembedding/directembedding.png?branch=master)](https://travis-ci.org/directembedding/directembedding)
+DirectEmbedding [![Build Status](https://travis-ci.org/directembedding/directembedding.png?branch=master)](https://travis-ci.org/directembedding/directembedding)
 ===============
 
-DirectEmbedding library for macro based direct embedding of DSLs.
+An experimental macro-based library for Embedded DSLs.
 
-# DirectEmbedding
+# DirectEmbedding for DSLs
 
 
-DirectEmbedding is a library that attemps to allow direct embedding in Scala for Domain Specific Languages (DSLs). Although, this project is, for now, a first sketch, this library could become a very useful tool. For instance, it can replace the complex shadow embedding of [Yin-Yang](https://github.com/scala-yinyang/scala-yinyang/tree/cbfaf02405c5e273498c15ce943965eeba8afa31) library in existing or future projects as [Slick](http://slick.typesafe.com/).
-This library is based on [macro](http://www.scala-lang.org/api/2.11.0/scala-reflect/index.html#scala.reflect.macros.blackbox.Context) which permit modification of [annoted code](http://docs.scala-lang.org/overviews/reflection/annotations-names-scopes.html) during *compile time*.
+DirectEmbedding is an experimental project that attempts to provide direct embedding in Scala for Domain Specific Languages (DSLs). Although, this project is currently exploratory, this library could become a very useful tool. For instance, it could replace the complex shadow embedding of [Yin-Yang](https://github.com/scala-yinyang/scala-yinyang/tree/cbfaf02405c5e273498c15ce943965eeba8afa31) library in existing or future projects such as [Slick](http://slick.typesafe.com/).
 
+DirectEmbedding has **one** effortless logic for reification. Thus, the reification comes along with some advantages among:
+
+- no knowledge of the [Reflection API](http://en.wikipedia.org/wiki/Reflection_%28computer_programming%29)
+- no overloading resolution
+- no dependence with types and count of arguments
+- no verbosity
+- no code duplication
+
+This is permitted by [*annotations*](http://docs.scala-lang.org/overviews/reflection/annotations-names-scopes.html) which attach metadata about the Intermediate Representation (IR) to Symbols such that the annotated function can easily be reified at compile-time.
+During the compilation, the ASTs with annotations can be identified and reified by a [macro](http://www.scala-lang.org/api/2.11.0/scala-reflect/index.html#scala.reflect.macros.blackbox.Context) which takes informations such as arguments, type arguments, the IR from the annotation. **Pretty simple!**
+
+<!--
 The simplicity for the DSLs users is kept because direct embedding implies that the code to be written by the users will be done in Scala with few restrictions on it and few overhead due to the DSL synthax.
 Furthermore, it also benefits the developpers of DSL because DirectEmbedding handles the difficult task of lifting the Scala AST to an Intermediate Representation (IR) thanks to macro.
+-->
 
-### Preview of usage 
+### Explanation with an example
+**On the DSL's developper side**
+
+* Let's imagine, we want to define for a DSL a function take() that returns a Query[T]:
+
+	```scala
+		class Query[T] {
+			val take(x: Int): Query[T] = ???
+		}
+	```
+
+* For this DSL, the function take() should be reified into the following IR:
+
+	```scala
+		case class Take[T](self: Exp[QueryIR[T]], n: Exp[Int])
+		   extends Exp[Query[T]]
+	```
+
+* Thus, the function take() needs to be annotated:
+
+	```scala
+		class Query[T] {
+			@reifyAs(Take) //Annotation with its corresponding IR
+			val take(x: Int): Query[T] = ???
+		}
+	```
+
+**On the DSL's user side**
+
+* One user calls the function take() in his code:
+
+	```scala
+	   lift {
+	      	new Query[Movie].take(3)
+	   }
+	```
+
+* The function is reified inside the compile into:
+
+	```scala
+	   Expr[T](Take.apply[Int](QueryIR.apply[Movie], 3))
+	```
+
+**What happened?**
+
+* A Scala AST is generated and caught
+* The annotation, the arguments and the type arguments are extracted
+* A macro reified the AST into the result
 
 
-**Developper code**
-
-```scala
-	object ObjectExample {
-		@reifyAs(ValDef)
-		val valDef: Int = ???
-	}
-```
-
-**User code**:
-
-```scala
-    ObjectExample.valDef
-```
-
-## Code Structure
+## About the code
 
 ### Project Structure
 | Component                                   		  | Description                        | 
 |:---------                                   		  |:-----------                        | 
-| `directembedding/...` <br> `/DirectEmbedding.scala` | Core code: lifting code with macro | 
+| `directembedding/...` <br> `/DirectEmbedding.scala` | Core code: reifying code with macro | 
 | `dsls/main/.../BasicSpec.scala`             		  | Intermediate Representation        | 
 | `dsls/test/.../TestBase.scala`              		  | Corners cases tests                | 
 
