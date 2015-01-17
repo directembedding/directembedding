@@ -77,12 +77,55 @@ Furthermore, it also benefits the developpers of DSL because DirectEmbedding han
 ## About the code
 
 ### Project Structure
-| Component                                   		  | Description                        | 
+| *Component*                                   		  | *Description*                        | 
 |:---------                                   		  |:-----------                        | 
 | `directembedding/...` <br> `/DirectEmbedding.scala` | **DirectEmbedding code:** reification code with macro | 
 | `dsls/main/.../BasicSpec.scala`             		  | **Test:** Intermediate Representation        | 
 | `dsls/test/.../TestBase.scala`              		  | **Test:** Corners cases tests                | 
 
+### DirectEmbedding.scala
+
+This file contains the reification code. It consists of the definition of:
+
+* reifyAs()
+
+	```scala
+	   class reifyAs(to: Any) extends scala.annotation.StaticAnnotation
+	```
+	
+	* This defines the annotation *reifyAs* which accepts *Any* object so the IR can be attach into the symbols
+
+* and lift()
+
+	```scala
+		def lift[T](c: Context)(block: c.Expr[T]): c.Expr[T] = {
+   			import c.universe._
+		    class LiftingTransformer extends Transformer {
+		    	...
+		    }
+		}
+	```
+	
+	* This is the method that encompasses all the reification process. 
+
+The class LiftingTransformer defines:
+
+* reify()
+
+	```scala
+		def reify(methodSym: Symbol, targs: List[Tree], args: List[Tree]): Tree = { ... }
+	```
+
+	* This code uses the macro with its parameters to reify the captured function into its IR.
+	
+* and transform()
+
+	```scala
+		override def transform(tree: Tree): Tree = { ... }
+	```
+
+	* transform() *pattern matches* over the different ASTs to extract the essential data for reify() that is to say the symbol, the type arguments and the arguments.
+	
 ## Usage
 The project has been tested under [Sbt 0.13.6](http://www.scala-sbt.org/) and [Scala 2.11.2](http://www.scala-lang.org/)
 
