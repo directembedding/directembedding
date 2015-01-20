@@ -12,7 +12,8 @@ This library provides **one** effortless logic for the reification of embedded D
 
 - have knowledge of the [Reflection API](http://docs.scala-lang.org/overviews/reflection/overview.html)
 - take care of overloading resolution himself
-- write code with dependencies to the types and the count of arguments
+- write code relying on the types of the arguments
+- write code relying on the count of the arguments
 - write verbose code
 - duplicate code
 
@@ -185,23 +186,23 @@ This file contains the functions and IR that represent a DSL. It is used to for 
 Example for a class:
 
 ```scala
-case object ClassCons extends Exp[ClassExample] // Note: IR extends the real returned type
+case object QueryIR[T] extends Exp[Query[T]] // Note: IR extends the real returned type
 
-@reifyAs(ClassCons)
-class ClassExample {
-  val dummyVal: Int = 1
+@reifyAs(QueryIR)
+class Query[T] {
+	...
 }
 ```
 
 Example for a function with *many* arguments:
 
 ```scala
-case class AppManyArgs[T](self: Exp[TArgClassExample[T]], p1: Exp[T]*) extends Exp[T] // Note: all function have as first argument a self
+case class TakeList[T](self: Exp[QueryIR[T]], x: Exp[Int]*) extends Exp[T] // Note: all function have as first argument a self
 
-@reifyAs(TArgClassExampleCase)
-class TArgClassExample[T] {
-	  @reifyAs(AppManyArgs)
-	  def app1[T](p1: T*): T = ???
+@reifyAs(QueryIR)
+class Query[T] {
+	  @reifyAs(TakeList)
+	  def take[T](x: Int*): List[Query[T]] = ???
 }
 ```
 
@@ -211,11 +212,11 @@ This fils contains the tests.
 Below the test for take():
 
 ```scala
-"lift" should "work with TArgClassExample methods with take" in {
+"lift" should "work with Query methods with take" in {
   testReify(implicit collec =>
     lift {
-      new TArgClassExample[Int].take(3)
-    }) should be(List(Take[Int](TArgClassExampleCase[Int](), 3)))
+      new Query[Int].take(3)
+    }) should be(List(Take[Int](QueryIR[Int](), 3)))
 }
 ```
 	
@@ -257,11 +258,11 @@ To configure the project for [Eclipse](http://scala-ide.org/download/sdk.html) r
 | override                     | No   |                             
 
 # References
+The following links are interesting papers concerning the context of this project:
+
 * [Experimental direct embedding for Slick](https://github.com/slick/slick/blob/master/src/sphinx/direct-embedding.rst)
-* [Master thesis: "An Embedded Query Language in Scala" by Amir Shaikhha ](https://github.com/amirsh/master-thesis)
-* []()
-* []()
-* []()
+* [An Embedded Query Language in Scala](https://github.com/amirsh/master-thesis)
+* [Yin-Yang: Concealing the Deep Embedding of DSLs](http://delivery.acm.org/10.1145/2660000/2658771/p73-jovanovic.pdf?ip=128.179.130.125&id=2658771&acc=ACTIVE%20SERVICE&key=FC66C24E42F07228%2E7E17DDD1CCA0F75B%2E4D4702B0C3E38B35%2E4D4702B0C3E38B35&CFID=473381017&CFTOKEN=70212791&__acm__=1421761375_f2e5918ea075eb58a2362809b2214ad4)
 
 # License
 
