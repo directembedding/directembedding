@@ -20,7 +20,7 @@ Our solution makes use of [annotations](http://docs.scala-lang.org/overviews/ref
 
 ##Table of contents:
 
-1. [Overview](#Overview)
+1. [Overview](#overview)
 2. [Details]()
 3. [Project Structure]()
 4. [Usage]()
@@ -110,7 +110,8 @@ There is not special difficulty for the identification, DirectEmbedding does the
 ## Quasiquotes?
 
 ```scala
-	case q"$a.take($b)" if a.tpe =:= typeOf[Query[_]]  	 		&& b.tpe =:= typeOf[Int] => Take(a, b)
+	case q"$a.take($b)" if a.tpe =:= typeOf[Query[_]]
+  	 		&& b.tpe =:= typeOf[Int] => Take(a, b)
 ```
 	
 The code above shows what would be reification without DirectEmbedding. Although, in this case, we used quasiquotes, there is none of the advantages of DirectEmbedding:
@@ -121,7 +122,8 @@ The code above shows what would be reification without DirectEmbedding. Although
 	- if *take(x: Int, b: Boolean): Query[T]* overrides *take(x: Int): Query[T]* then another conditional statement would be needed
 
 	```scala
-		case q"$a.take($b, $c)" if a.tpe =:= typeOf[Query[_]]  	 		&& b.tpe =:= typeOf[Int]
+		case q"$a.take($b, $c)" if a.tpe =:= typeOf[Query[_]]
+  	 		&& b.tpe =:= typeOf[Int]
   	 		&& c.tpe =:= typeOf[Boolean] => Take(a, b, c)
 	```
 - **no dependence with types and count of arguments**
