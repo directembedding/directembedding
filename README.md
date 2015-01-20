@@ -41,7 +41,7 @@ Writing embedding DSLs implies to go though the difficult task of reification.
 Reification means when a function *take(x: Int): Query[T]* is written in Scala it will be converted to a corresponding DSL object *Take*. *Take* is the Intermediate Representation (IR) of the function *take()*. The naive method would code conditional statements that would **identify** which function has been called. Identifying is strenuous and redundant because it must check many criteria, takes in account aspects such as overriding of the function and this for all functions or classes. It is not a best practices and it creates as much reification logics than there is cases to reify.
 Hopefully, this can be facilitated by libraries and DirectEmbedding is one of them.
 
-*More explanation in Details, Quasiquotes?*
+*[More in  Quasiquotes](#quasiquotes)*
 
 ### Attach Metadata
 The idea developed by DirectEmbedding is to attach metadata about the corresponding IR and thus it get rid of the demanding task of identification. It becomes straight forward to solve the previous issues. When it was required to verify the name of the function, its types, its types arguments, its arguments count, now this is declared along the function. Overriding? It is also very simple, it simply needs to attach the corresponding IR.
