@@ -20,12 +20,12 @@ Our solution makes use of [annotations](http://docs.scala-lang.org/overviews/ref
 
 ##Table of contents:
 
-1. [Quick overview](overview)
-2. Detailled explanations
-3. Code explanation
-4. Usage
-5. References
-6. Licence
+1. [Overview](#Overview)
+2. [Details]()
+3. [Project Structure]()
+4. [Usage]()
+5. [References]()
+6. [Licence]()
 
 
 
@@ -38,8 +38,10 @@ Furthermore, it also benefits the developpers of DSL because DirectEmbedding han
 
 # Overview
 Writing embedding DSLs implies to go though the difficult task of reification. 
-Reification means when a function *take(x: Int): Query[T]* is written in Scala it will be converted to a corresponding DSL object *Take*. *Take* is the Intermediate Representation (IR) of the function *take()*. The naive method would code conditionnal statements that would **identify** which function has been called. Identifying is strenuous and redundant because it must check many criteria, takes in account aspects such as overriding of the function and this for all functions or classes. It is not a best practices and it creates as much reification logics than there is cases to reify.
+Reification means when a function *take(x: Int): Query[T]* is written in Scala it will be converted to a corresponding DSL object *Take*. *Take* is the Intermediate Representation (IR) of the function *take()*. The naive method would code conditional statements that would **identify** which function has been called. Identifying is strenuous and redundant because it must check many criteria, takes in account aspects such as overriding of the function and this for all functions or classes. It is not a best practices and it creates as much reification logics than there is cases to reify.
 Hopefully, this can be facilitated by libraries and DirectEmbedding is one of them.
+
+*More explanation in Details, Quasiquotes?*
 
 ### Attach Metadata
 The idea developed by DirectEmbedding is to attach metadata about the corresponding IR and thus it get rid of the demanding task of identification. It becomes straight forward to solve the previous issues. When it was required to verify the name of the function, its types, its types arguments, its arguments count, now this is declared along the function. Overriding? It is also very simple, it simply needs to attach the corresponding IR.
@@ -54,7 +56,7 @@ There is not special difficulty for the identification, DirectEmbedding does the
 
 
 
-### An example
+### Overview: An example
 **On the DSL's developper side**
 
 * Let's imagine, we want to define for a DSL a function take() that returns a Query[T]:
@@ -91,7 +93,7 @@ There is not special difficulty for the identification, DirectEmbedding does the
 	   }
 	```
 
-* The function is reified inside the compile into:
+* The function is reified inside at compile-time into:
 
 	```scala
 	   Expr[T](Take.apply[Int](QueryIR.apply[Movie], 3))
@@ -104,16 +106,47 @@ There is not special difficulty for the identification, DirectEmbedding does the
 * A macro reified the AST into the result
 
 
-## About the code
+# Details
+## Quasiquotes?
 
-### Project Structure
+```scala
+	case q"$a.take($b)" if a.tpe =:= typeOf[Query[_]]  	 		&& b.tpe =:= typeOf[Int] => Take(a, b)
+```
+	
+The code above shows what would be reification without DirectEmbedding. Although, in this case, we used quasiquotes, there is none of the advantages of DirectEmbedding:
+	
+1. **no knowledge of the [Reflection API](http://en.wikipedia.org/wiki/Reflection_%28computer_programming%29)**
+	- this code obviously necessitates knowledge of the Reflection API
+- **no overloading resolution**
+	- if *take(x: Int, b: Boolean): Query[T]* overrides *take(x: Int): Query[T]* then another conditional statement would be needed
+
+	```scala
+		case q"$a.take($b, $c)" if a.tpe =:= typeOf[Query[_]]  	 		&& b.tpe =:= typeOf[Int]
+  	 		&& c.tpe =:= typeOf[Boolean] => Take(a, b, c)
+	```
+- **no dependence with types and count of arguments**
+	- as shown in the previous example, a new argument implies a new code
+- **no verbosity**
+	- this kind of code can become illegible
+- **no code duplication**
+	- again in the override example, there is unnecessary code duplication
+
+
+## Persisted
+why persisted
+
+## Inline
+why inline
+
+
+# Project Structure
 | *Component*                                   		  | *Description*                        | 
 |:---------                                   		  |:-----------                        | 
 | `directembedding/...` <br> `/DirectEmbedding.scala` | **DirectEmbedding code:** reification code with macro | 
 | `dsls/main/.../BasicSpec.scala`             		  | **Test:** Intermediate Representation        | 
 | `dsls/test/.../TestBase.scala`              		  | **Test:** Corners cases tests                | 
 
-### DirectEmbedding.scala
+## DirectEmbedding.scala
 
 This file contains the reification code. It consists of the definition of:
 
@@ -155,12 +188,52 @@ The class LiftingTransformer defines:
 	```
 
 	* transform() *pattern matches* over the different ASTs to extract the essential data for reify() that is to say the symbol, the type arguments and the arguments.
+
+## TestBase.scala
+This file contains the functions and IR that represent a DSL. It is used to for testing purpose in BasiSpec.scala
+
+Example for a class:
+
+```scala
+case object ClassCons extends Exp[ClassExample] // Note: IR extends the real returned type
+
+@reifyAs(ClassCons)
+class ClassExample {
+  val dummyVal: Int = 1
+}
+```
+
+Example for a function with *many* arguments:
+
+```scala
+case class AppManyArgs[T](self: Exp[TArgClassExample[T]], p1: Exp[T]*) extends Exp[T] // Note: all function have as first argument a self
+
+@reifyAs(TArgClassExampleCase)
+class TArgClassExample[T] {
+	  @reifyAs(AppManyArgs)
+	  def app1[T](p1: T*): T = ???
+}
+```
+
+## BasicSpec.scala
+This fils contains the tests.
+
+For example the test for take():
+
+```scala
+"lift" should "work with TArgClassExample methods with take" in {
+  testReify(implicit collec =>
+    lift {
+      new TArgClassExample[Int].take(3)
+    }) should be(List(Take[Int](TArgClassExampleCase[Int](), 3)))
+}
+```
 	
-## Usage
+# Usage
 The project has been tested under [Sbt 0.13.6](http://www.scala-sbt.org/) and [Scala 2.11.2](http://www.scala-lang.org/)
 
 ### Dependencies
-To add the **ScalaTest** library, copy paste the hereafter dependency into the *build.sbt* in *\<sbtRootFolder\>/0.13/plugins/*
+The project depends on **ScalaTest 2.2.1** library, copy paste the hereafter dependency into the *build.sbt* in *\<sbtRootFolder\>/0.13/plugins/*
 
     libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.1" % "test"
 
@@ -174,10 +247,32 @@ To launch the tests:
 To configure the project for [Eclipse](http://scala-ide.org/download/sdk.html) run the command:
 
      sbt eclipse
-    
+ 
 
+# Progress
 
+| Todos                        | Done | Details                     |
+|------------------------------|------|-----------------------------|
+| values                       | Yes  | val x = ...                 |
+| function                     | Yes  | def foo: ...                |
+| function with args           | Yes  | def foo(x: Int): Int = ...  |
+| function with targs          | Yes  | def foo[T, U]: (T, U) = ... |
+| function with args and targs | Yes  | def foo[T, U]\(t: T, u: U): (T, U) = ... |
+| objects                      | Yes  |                             
+| nested objects               | Yes  |                             
+| classes                      | Yes  |                             
+| language specification       | No   | if, while, read-var         |
+| operator                     | No   |                             
+| recursion                    | No   |                             
+| override                     | No   |                             
 
-## License
+# References
+* [Experimental direct embedding for Slick](https://github.com/slick/slick/blob/master/src/sphinx/direct-embedding.rst)
+* [Master thesis: "An Embedded Query Language in Scala" by Amir Shaikhha ](https://github.com/amirsh/master-thesis)
+* []()
+* []()
+* []()
+
+# License
 
 DirectEmbedding is licensed under the [EPFL License](https://raw.githubusercontent.com/directembedding/directembedding/master/LICENCE).
