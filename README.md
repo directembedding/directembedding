@@ -11,9 +11,8 @@ DirectEmbedding is an experimental project that attempts to provide direct embed
 This library provides **one** effortless logic for the reification of embedded DSLs in Scala.  It does not require the DSL author to:
 
 - have knowledge of the [Reflection API](http://docs.scala-lang.org/overviews/reflection/overview.html)
-- take care of overloading resolution himself
-- write code relying on the types of the arguments
-- write code relying on the count of the arguments
+- take care of overloading resolution by himself
+- write code relying on the types and the count of the arguments
 - write verbose code
 - duplicate code
 
