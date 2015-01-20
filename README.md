@@ -21,11 +21,11 @@ Our solution makes use of [annotations](http://docs.scala-lang.org/overviews/ref
 ##Table of contents:
 
 1. [Overview](#overview)
-2. [Details]()
-3. [Project Structure]()
-4. [Usage]()
-5. [References]()
-6. [Licence]()
+2. [Details](#details)
+3. [Project Structure](#project-structure)
+4. [Usage](#usage)
+5. [References](#references)
+6. [Licence](#licence)
 
 
 
