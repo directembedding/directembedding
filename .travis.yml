@@ -11,6 +11,7 @@ notifications:
   email:
     - gvojin@gmail.com
     - joris.beau@epfl.ch
+    - olafurpg@gmail.com
 branches:
   only:
     - master

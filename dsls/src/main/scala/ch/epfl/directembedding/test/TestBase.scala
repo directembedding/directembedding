@@ -1,5 +1,6 @@
 package ch.epfl.directembedding.test
 
+import ch.epfl.directembedding.transformers.reifyAs
 import ch.epfl.directembedding._
 
 // Intermediate Representation
@@ -26,6 +27,8 @@ case class TArgClassExampleCase[T]() extends Exp[TArgClassExample[T]]
 object ObjectExample {
   @reifyAs(ValDef)
   val valDef: Int = ???
+
+  def missingAnnotation: Int = ???
 
   @reifyAs(NoArgs)
   def noArgs: Int = ???

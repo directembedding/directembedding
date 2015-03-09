@@ -158,4 +158,13 @@ class BasicSpec extends FlatSpec with ShouldMatchers {
         new TArgClassExample[Int].appCurry2[Int](1)(2)(3)
       }) should be(List(AppCurry[Int](TArgClassExampleCase[Int], 1, 2, 3)))
   }
+
+  "lift" should "take the last expression in blocks" in {
+    testReify(implicit collec =>
+      lift {
+        println("debug")
+        ObjectExample.valDef
+      }) should be(List(ValDef))
+  }
+
 }
