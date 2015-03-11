@@ -52,6 +52,7 @@ class BasicSpec extends FlatSpec with ShouldMatchers {
       lift {
         ObjectExample.nested.valDef
       }) should be(List(ValDef))
+
   }
 
   "lift" should "work with nested object methods without arguments and type arguments" in {
@@ -90,6 +91,7 @@ class BasicSpec extends FlatSpec with ShouldMatchers {
   }
 
   "lift" should "work with TArgClassExample methods with take" in {
+
     testReify(implicit collec =>
       lift {
         new TArgClassExample[Int].take(3)
@@ -127,6 +129,7 @@ class BasicSpec extends FlatSpec with ShouldMatchers {
   "lift" should "work with TArgClassExample methods with app 1 args" in {
     testReify(implicit collec =>
       lift {
+
         new TArgClassExample[Int].app1[Int](1)
       }) should be(List(AppManyArgs[Int](TArgClassExampleCase[Int], 1))) // Const(1) ?
   }
@@ -158,4 +161,19 @@ class BasicSpec extends FlatSpec with ShouldMatchers {
         new TArgClassExample[Int].appCurry2[Int](1)(2)(3)
       }) should be(List(AppCurry[Int](TArgClassExampleCase[Int], 1, 2, 3)))
   }
+
+  "lift" should "take the last expression in blocks" in {
+    testReify(implicit collec =>
+      lift {
+        println("debug")
+        ObjectExample.valDef
+      }) should be(List(ValDef))
+  }
+
+  //  "lift" should "give a friendly error when a reifyAs annotation is missing" in {
+  //    testReify(implicit collec =>
+  //      lift {
+  //        ObjectExample.missingAnnotation
+  //      }) should be(List(ValDef))
+  //  }
 }
