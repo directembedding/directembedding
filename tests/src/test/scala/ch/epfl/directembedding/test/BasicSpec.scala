@@ -1,6 +1,7 @@
 package ch.epfl.directembedding.test
 
 import org.scalatest.{ FlatSpec, ShouldMatchers }
+import Typecheck._
 
 class BasicSpec extends FlatSpec with ShouldMatchers {
 
@@ -165,6 +166,16 @@ class BasicSpec extends FlatSpec with ShouldMatchers {
         println("debug")
         ObjectExample.valDef
       }) should be(List(ValDef))
+  }
+
+  "lift" should "give a useful error when a reifyAs annotation is missing" in {
+    typedWithMsg(
+      """
+        testReify(implicit collec =>
+          lift {
+            ObjectExample.missingAnnotation
+        }) should be(List(???))
+      """, "Missing reifyAs annotation for method missingAnnotation")
   }
 
 }

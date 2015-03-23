@@ -44,16 +44,22 @@ object DirectEmbeddingBuild extends Build {
   lazy val root = Project(
     id = "root",
     base = file("."),
-    settings = defaults ++ Seq(publishArtifact := false)) aggregate (directEmbedding, dsls)
+    settings = defaults ++ Seq(publishArtifact := false)) aggregate (directEmbedding, dsls, tests)
 
   lazy val directEmbedding = Project(
     id = "directembedding",
     base = file("directembedding"),
     settings = defaults ++ Seq(name := "directembedding"))
+
   lazy val dsls = Project(
     id = "dsls",
     base = file("dsls"),
     settings = defaults ++ Seq(name := "dsls")) dependsOn (directEmbedding)
+
+  lazy val tests = Project(
+    id = "tests",
+    base = file("tests"),
+    settings = defaults ++ Seq(name := "directembedding-tests")) dependsOn (dsls)
 
   lazy val defaults = projectSettings ++ scalaSettings ++ formatSettings ++ libraryDeps ++ Seq(
     resolvers +=  "OSSH" at "https://oss.sonatype.org/content/groups/public",
