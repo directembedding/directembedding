@@ -1,6 +1,8 @@
 package ch.epfl.directembedding
 
 import ch.epfl.directembedding.transformers.ReifyAsEmbedding
+import ch.epfl.yinyang.transformers.LanguageVirtualization
+import ch.epfl.yinyang.EmbeddedControls
 
 import scala.reflect.macros.blackbox.Context
 
@@ -36,18 +38,6 @@ protected[directembedding] object Macros {
       ..${paramsMap.values.map(_._2)}
       ${c.untypecheck(inlinedBody)}
     }"""
-  }
-
-  def lift[T](c: Context)(block: c.Expr[T]): c.Expr[T] = {
-    import c.universe._
-
-    val reified = new ReifyAsLifter[c.type](c).lift(block.tree)
-    c.Expr[T](q"_root_.ch.epfl.directembedding.test.compile($reified)")
-  }
-
-  private final class ReifyAsLifter[C <: Context](val c: C) extends ReifyAsEmbedding {
-    type Ctx = C
-    val debugLevel = 0
   }
 
   def extractMethodTree(c: Context)(x: c.Expr[Any]): c.Expr[MethodTree] = {

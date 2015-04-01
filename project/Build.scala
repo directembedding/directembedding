@@ -37,7 +37,9 @@ object DirectEmbeddingBuild extends Build {
       scalaOrg % "scala-reflect" % ver,
       scalaOrg % "scala-compiler" % ver,
       "org.scalatest" % "scalatest_2.11" % "2.1.5" % "test",
-      "junit" % "junit" % "4.11" % "test" // we need JUnit explicitly
+      "junit" % "junit" % "4.11" % "test", // we need JUnit explicitly
+      "ch.epfl.lamp" % "scala-yinyang_2.11" % "0.1.0",
+      "ch.epfl.lamp" % "yinyang-paradise_2.11" % "0.1.0"
   )))
 
   // modules

@@ -1,10 +1,9 @@
 package ch.epfl.directembedding
+
 import scala.language.experimental.macros
 import scala.reflect.macros.blackbox.Context
 
 package object test {
-  // For our DSL
-  def lift[T](block: T): T = macro Macros.lift[T]
 
   trait Collector {
     def add[T](ast: Exp[T])
@@ -20,13 +19,6 @@ package object test {
 
     def get: Seq[Exp[_]] = c
   }
-
-  def compile[T](ast: Exp[T])(implicit collector: Collector): T = {
-    collector.add[T](ast)
-    ???
-  }
-
-  implicit def liftConstant[T](x: T): Exp[T] = Const(x)
 
   // For testing purposes
   def persisted(x: Any): String = macro Persisted.persisted
