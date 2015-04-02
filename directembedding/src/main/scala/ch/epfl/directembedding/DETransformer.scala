@@ -5,31 +5,18 @@ import ch.epfl.yinyang.analysis.FreeIdentAnalysis
 import ch.epfl.yinyang.transformers.{ LanguageVirtualization, NullPreProcessing, NullPostProcessing, PreProcessing, PostProcessing }
 
 import scala.reflect.macros.{ TypecheckException, blackbox }
+import scala.reflect.runtime.universe._
 
 object DETransformer {
 
-  def typechecks[C <: blackbox.Context](c: C)(path: c.Tree): Boolean = {
-    import c.universe._
-    try {
-      c.typecheck(path)
-    } catch {
-      case e: TypecheckException =>
-        return false
-    }
-    true
-  }
-
-  def apply[C <: blackbox.Context, T](c: C)(
+  def apply[C <: blackbox.Context, T, D <: DslConfig](c: C)(
     _dslName: String,
-    _configType: c.universe.Type,
     postProcessing: Option[PostProcessing[c.type]],
-    preProcessing: Option[PreProcessing[c.type]]): DETransformer[c.type, T] = {
+    preProcessing: Option[PreProcessing[c.type]])(implicit tag: WeakTypeTag[D]): DETransformer[c.type, T] = {
     import c.universe._
 
-    val configName = _configType.typeSymbol.fullName
+    val configName = tag.tpe.typeSymbol.fullName
     val dslConfig: Tree = c.parse(configName)
-    assert(typechecks(c)(q"import $dslConfig.lift"), s"Method lift is not a member of type $configName")
-    assert(typechecks(c)(q"import $dslConfig.dsl"), s"Method dsl is not a member of $configName")
 
     new DETransformer[c.type, T](c) {
       val postProcessor = postProcessing.getOrElse(new NullPostProcessing[c.type](c))

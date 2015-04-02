@@ -10,28 +10,25 @@ import scala.reflect.macros.blackbox.Context
 package object example {
   def dsl[T](block: T): T = macro implementations.liftRep[T]
 
-  implicit def liftConstant[T](x: T): Exp[T] = Const(x)
+  val Q = new java.util.concurrent.LinkedBlockingQueue[Exp[_]]()
 
-  def compile[T](ast: Exp[T])(implicit collector: Collector): T = {
-    collector.add[T](ast)
-    ???
-  }
+  implicit def liftConstant[T](x: T): Exp[T] = Const(x)
 
   object ExampleConfig extends ExampleConfig
 
   /**
    * Configuration module for example DSL
-   *
-   * Note, your custom DSL is free to extend [[DslConfig]]. We don't extend
-   * [[DslConfig]] for this example because then we couldn't accept an implicit
-   * parameter in the [[dsl()]] method. We use the implicit parameter for
-   * testing purposes.
    */
-  trait ExampleConfig extends VirtualizationOverrides {
-    def dsl[T](e: Exp[T])(implicit collector: Collector): T = {
-      collector.add[T](e)
+  trait ExampleConfig extends VirtualizationOverrides with DslConfig {
+
+    type Literal[T] = Const[T]
+    type Rep[T] = Exp[T]
+
+    def dsl[T](e: Exp[T]): T = {
+      Q.add(e)
       ???
     }
+
     def lift[T](e: T): Const[T] = Const(e)
   }
 
@@ -47,11 +44,11 @@ package object example {
   object implementations {
     def liftRep[T](c: Context)(block: c.Expr[T]): c.Expr[T] = {
       val config = "ch.epfl.directembedding.test.example"
-      DETransformer[c.type, T](c)(
+      DETransformer[c.type, T, ExampleConfig](c)(
         "example.dsl",
-        c.weakTypeTag[ExampleConfig].tpe,
         None,
-        None)(block)
+        // Note the explicit `apply`, this is necessary.
+        None).apply(block)
     }
   }
 }
