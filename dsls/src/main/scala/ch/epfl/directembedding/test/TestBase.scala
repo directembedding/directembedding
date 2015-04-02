@@ -12,13 +12,16 @@ case class JustArgs(x: Exp[Int]) extends Exp[Int]
 case class ArgsAndTArgs[T, U](t: Exp[T], u: Exp[U]) extends Exp[(T, U)]
 case class Const[T](x: T) extends Exp[T]
 
-case class Size[T](self: Exp[TArgClassExampleCase[T]]) extends Exp[Int]
-case class Take[T](self: Exp[TArgClassExampleCase[T]], n: Exp[Int]) extends Exp[TArgClassExample[T]]
-case class X[T](self: Exp[TArgClassExample[T]]) extends Exp[Int]
-case class Y[T](self: Exp[TArgClassExample[T]]) extends Exp[Int]
-case class TArgsZ[T, U](self: Exp[TArgClassExample[T]]) extends Exp[U]
-case class AppCurry[T](self: Exp[TArgClassExample[T]], p1: Exp[T], p2: Exp[T], p3: Exp[T]*) extends Exp[T]
-case class AppManyArgs[T](self: Exp[TArgClassExample[T]], p1: Exp[T]*) extends Exp[T]
+case class Size[T](self: Exp[_]) extends Exp[Int]
+case class Take[T](self: Exp[_], n: Exp[Int]) extends Exp[TArgClassExample[T]]
+case class X[T](self: Exp[_]) extends Exp[Int]
+case class Y[T](self: Exp[_]) extends Exp[Int]
+case class TArgsZ[T, U](self: Exp[_]) extends Exp[U]
+case class AppCurry[T](self: Exp[_], p1: Exp[T], p2: Exp[T], p3: Exp[T]*) extends Exp[T]
+case class AppManyArgs[T](self: Exp[_], p1: Exp[T]*) extends Exp[T]
+
+case class IF[T](cond: Exp[Boolean], e1: Exp[T], e2: Exp[T]) extends Exp[T]
+case class NewVar[T](e: Exp[T]) extends Exp[T]
 
 case object ClassCons extends Exp[ClassExample]
 case class TArgClassExampleCase[T]() extends Exp[TArgClassExample[T]]
@@ -42,7 +45,6 @@ object ObjectExample {
   @reifyAs(ArgsAndTArgs)
   def argsAndTArgs[T, U](t: T, u: U): (T, U) = ???
 
-  // TODO nested objects
   object nested {
     @reifyAs(ValDef)
     val valDef: Int = ???
@@ -58,7 +60,6 @@ object ObjectExample {
 
     @reifyAs(ArgsAndTArgs)
     def argsAndTArgs[T, U](t: T, u: U): (T, U) = ???
-
   }
 }
 

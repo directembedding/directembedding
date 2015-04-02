@@ -7,20 +7,20 @@ class reifyAs(to: Any) extends scala.annotation.StaticAnnotation
 trait ReifyAsEmbedding extends DirectEmbeddingModule with DirectEmbeddingUtils {
   import c.universe._
 
-  override def lift(tree: Tree): Tree = LiftingTransformer(tree)
-
-  object LiftingTransformer {
+  object ReifyAsTransformer extends (Tree => Tree) {
     def apply(tree: Tree) = {
-      new LiftingTransformer(tree.pos).apply(tree)
+      new ReifyAsTransformer(tree.pos).apply(tree)
     }
   }
 
-  final class LiftingTransformer(pos: Position) extends Transformer {
+  final class ReifyAsTransformer(pos: Position) extends Transformer {
     def apply(tree: Tree): Tree = transform(tree)
 
+    def getReifyAnnotation(methodSym: Symbol): Option[Annotation] = methodSym.annotations.find(_.tree.tpe <:< c.typeOf[reifyAs])
+
     def reify(methodSym: Symbol, targs: List[Tree], args: List[Tree]): Tree = {
-      val reifyAsAnnot = methodSym.annotations.find(_.tree.tpe <:< c.typeOf[reifyAs]).getOrElse {
-        c.abort(pos, s"Missing reifyAs annotation for $methodSym")
+      val reifyAsAnnot = getReifyAnnotation(methodSym).getOrElse {
+        c.abort(pos, s"$methodSym is not supported in $dslName")
       }
 
       val body :: _ = reifyAsAnnot.tree.children.tail
@@ -51,9 +51,9 @@ trait ReifyAsEmbedding extends DirectEmbeddingModule with DirectEmbeddingUtils {
       if (x.symbol.isModule) None else Some(transform(x))
 
     /**
-     * Convert curried function to uncurried function, transforming each argument along the way
+     * Convert curried function to uncurried function
      *
-     * Example f(1)(2) => f(Const(1), Const(2))
+     * Example f(1)(2) => f(1, 2)
      *
      * @param t Tree to be uncurried
      * @param args List[Tree] arguments to prepend to uncurried argument list
@@ -63,43 +63,71 @@ trait ReifyAsEmbedding extends DirectEmbeddingModule with DirectEmbeddingUtils {
       case field @ Apply(x, y) =>
         uncurry(x, y ::: args)
       case _ =>
-        Apply(t, args.map(transform(_)))
+        Apply(t, args)
     }
 
+    var indent: Int = 0
+
     override def transform(tree: Tree): Tree = {
-      tree match {
+      logIndented(s"transform():", indent, logLevel)
+      logTree(tree, logLevel + 1)
+      indent += 2
+      val result = tree match {
         case a @ Apply(Apply(_, _), _) =>
+          logIndented(s"Apply(Apply)", indent, logLevel)
           val t = uncurry(a, Nil)
           transform(t)
 
-        case Apply(Select(New(newBody), _), _) =>
+        // f(args)
+        case Apply(Select(New(newBody), _), cargs) =>
+          logIndented(s"Apply(Select(New)):", indent, logLevel)
           val listArgs = newBody.tpe.typeArgs
-          reify(newBody.symbol, listArgs.map(TypeTree(_)), Nil)
+          reify(newBody.symbol, listArgs.map(TypeTree(_)), cargs)
 
+        // f(args)
         case Apply(field @ Select(x, _), args) =>
+          logIndented(s"Apply(Select):", indent, logLevel)
           val invokedSymbol = getInvokedSymbol(field)
           val self = getSelf(x).toList
-          reify(invokedSymbol, x.tpe.typeArgs.map(TypeTree(_)), self ::: args)
+          reify(invokedSymbol, x.tpe.typeArgs.map(TypeTree(_)), self ::: args.map(transform(_)))
 
+        // f[T](args)
         case Apply(TypeApply(field @ Select(x, _), targs), args) =>
+          logIndented(s"Apply(TypeApply):", indent, logLevel)
           val invokedSymbol = getInvokedSymbol(field)
           val self = getSelf(x).toList
           reify(invokedSymbol, targs.map(transform(_)), self ::: args.map(transform(_)))
 
+        case Apply(lhs, args) =>
+          logIndented(s"Apply() fallback:", indent, logLevel)
+          reify(lhs.symbol, Nil, args)
+
+        // f[T]
         case TypeApply(field @ Select(x, _), targs) =>
+          logIndented(s"TypeApply", indent, logLevel)
           val invokedSymbol = getInvokedSymbol(field)
           val self = getSelf(x).toList
           reify(invokedSymbol, x.tpe.typeArgs.map(TypeTree(_)) ::: targs.map(transform(_)), self)
 
+        // obj.field
         case field @ Select(x, _) =>
+          logIndented(s"Select()", indent, logLevel)
           val invokedSymbol = getInvokedSymbol(field)
           val self = getSelf(x).toList
           reify(invokedSymbol, x.tpe.typeArgs.map(TypeTree(_)), self)
 
-        case Block(_, expr) => transform(expr)
+        case _: Import => {
+          logIndented(s"Import", indent)
+          logTree(tree)
+          tree
+        }
 
-        case _              => super.transform(tree)
+        case _ =>
+          logIndented(s"other branch:", indent, logLevel)
+          super.transform(tree)
       }
+      indent -= 2
+      result
     }
   }
 }
