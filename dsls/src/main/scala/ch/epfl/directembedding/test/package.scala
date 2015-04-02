@@ -4,22 +4,6 @@ import scala.language.experimental.macros
 import scala.reflect.macros.blackbox.Context
 
 package object test {
-
-  trait Collector {
-    def add[T](ast: Exp[T])
-    def get: Seq[Exp[_]]
-  }
-
-  class CollectClass extends Collector {
-    var c: Seq[Exp[_]] = Seq()
-
-    def add[T](ast: Exp[T]) = {
-      c = c :+ ast
-    }
-
-    def get: Seq[Exp[_]] = c
-  }
-
   // For testing purposes
   def persisted(x: Any): String = macro Persisted.persisted
   def inline[T](x: T): T = macro Persisted.inline[T]
