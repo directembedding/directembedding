@@ -5,17 +5,20 @@ import org.scalatest.{ FlatSpec, ShouldMatchers }
 import Typecheck._
 import ch.epfl.directembedding.test.example._
 
-class BasicSpec extends FlatSpec with ShouldMatchers {
-
-  def runTest[T](body: => T): Exp[_] = {
+trait ExampleTester extends FlatSpec {
+  def runTest[T](body: => T): Exp[T] = {
     intercept[scala.NotImplementedError] {
       body
     }
-    Q.poll()
+    Q.poll().asInstanceOf[Exp[T]]
   }
 
+}
+
+class BasicSpec extends FlatSpec with ShouldMatchers with ExampleTester {
+
   "dsl" should "work object fields" in {
-    runTest(
+    runTest[Int](
       dsl {
         ObjectExample.valDef
       }) should be(ValDef)
@@ -98,14 +101,14 @@ class BasicSpec extends FlatSpec with ShouldMatchers {
       }) should be(Take[Int](TArgClassExampleCase[Int](), 3))
   }
 
-  "lift" should "work with TArgClassExample methods with nested take" in {
+  "dsl" should "work with TArgClassExample methods with nested take" in {
     runTest(
       dsl {
         new TArgClassExample[Int].take(1).take(2)
       }) should be(Take[Int](Take[Int](TArgClassExampleCase[Int](), Const(1)), Const(2)))
   }
 
-  "lift" should "work with TArgClassExample methods with val x" in {
+  "dsl" should "work with TArgClassExample methods with val x" in {
     runTest(
       dsl {
         new TArgClassExample[Int].x
@@ -176,46 +179,12 @@ class BasicSpec extends FlatSpec with ShouldMatchers {
       }) should be(ValDef)
   }
 
-  "dsl" should "work with a virtualized boolean __ifThenElse" in {
-    runTest(
-      dsl {
-        if (true) ObjectExample.valDef else ObjectExample.noArgs
-      }) should be(IF(Const(true), ValDef, NoArgs))
-  }
-
-  "dsl" should "work with a virtualized boolean __ifThenElse in block" in {
-    runTest(
-      dsl {
-        val result = if (true) ObjectExample.valDef else ObjectExample.noArgs
-        result
-      }) should be(IF(true, ValDef, NoArgs))
-  }
-
-  "dsl" should "work with a virtualized __newVar in block" in {
-    runTest(
-      dsl {
-        var result = "result"
-        result
-      }) should be(NewVar(Const("result")))
-  }
-
   "dsl" should "lift free variables in block" in {
     val b = true
     runTest(
       dsl {
         b
       }) should be(Const(b))
-  }
-
-  "dsl" should "give a useful error when a reifyAs annotation is missing" in {
-    typedWithMsg(
-      """
-        runTest(
-          dsl {
-            ObjectExample.missingAnnotation
-        }) should be(???)
-      """, "method missingAnnotation is not supported in example.dsl")
-
   }
 
 }

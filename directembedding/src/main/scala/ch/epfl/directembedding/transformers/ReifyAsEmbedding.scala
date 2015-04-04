@@ -3,12 +3,14 @@ package ch.epfl.directembedding.transformers
 import ch.epfl.directembedding.{ DirectEmbeddingModule, DirectEmbeddingUtils, MacroModule }
 
 class reifyAs(to: Any) extends scala.annotation.StaticAnnotation
+class ignore extends scala.annotation.StaticAnnotation
 
 trait ReifyAsEmbedding extends DirectEmbeddingModule with DirectEmbeddingUtils {
   import c.universe._
 
   object ReifyAsTransformer extends (Tree => Tree) {
     def apply(tree: Tree) = {
+      logStarred("Before ReifyAsEmbedding", logLevel)
       new ReifyAsTransformer(tree.pos).apply(tree)
     }
   }
@@ -16,10 +18,10 @@ trait ReifyAsEmbedding extends DirectEmbeddingModule with DirectEmbeddingUtils {
   final class ReifyAsTransformer(pos: Position) extends Transformer {
     def apply(tree: Tree): Tree = transform(tree)
 
-    def getReifyAnnotation(methodSym: Symbol): Option[Annotation] = methodSym.annotations.find(_.tree.tpe <:< c.typeOf[reifyAs])
+    def getReifyAnnotation(methodSym: Symbol, typ: Type): Option[Annotation] = methodSym.annotations.find(_.tree.tpe <:< typ)
 
     def reify(methodSym: Symbol, targs: List[Tree], args: List[Tree]): Tree = {
-      val reifyAsAnnot = getReifyAnnotation(methodSym).getOrElse {
+      val reifyAsAnnot = getReifyAnnotation(methodSym, c.typeOf[reifyAs]).getOrElse {
         c.abort(pos, s"$methodSym is not supported in $dslName")
       }
 
@@ -47,8 +49,11 @@ trait ReifyAsEmbedding extends DirectEmbeddingModule with DirectEmbeddingUtils {
     /**
      * Returns transformed tree if tree is a class instance, None otherwise
      */
-    def getSelf(x: Tree): Option[Tree] =
-      if (x.symbol.isModule) None else Some(transform(x))
+    def getSelf(x: Tree): Option[Tree] = {
+      Option(x).withFilter { t =>
+        t.symbol != null && !t.symbol.isModule
+      }.map(transform)
+    }
 
     /**
      * Convert curried function to uncurried function
@@ -69,7 +74,7 @@ trait ReifyAsEmbedding extends DirectEmbeddingModule with DirectEmbeddingUtils {
     var indent: Int = 0
 
     override def transform(tree: Tree): Tree = {
-      logIndented(s"transform():", indent, logLevel)
+      logIndented(s"transform(): $tree", indent, logLevel)
       logTree(tree, logLevel + 1)
       indent += 2
       val result = tree match {
@@ -117,8 +122,8 @@ trait ReifyAsEmbedding extends DirectEmbeddingModule with DirectEmbeddingUtils {
           reify(invokedSymbol, x.tpe.typeArgs.map(TypeTree(_)), self)
 
         case _: Import => {
-          logIndented(s"Import", indent)
-          logTree(tree)
+          logIndented(s"Import", indent, logLevel)
+          logTree(tree, logLevel + 1)
           tree
         }
 
