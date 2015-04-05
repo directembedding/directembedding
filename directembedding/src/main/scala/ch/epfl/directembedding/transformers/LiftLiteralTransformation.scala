@@ -28,7 +28,7 @@ trait LiftLiteralTransformation extends DirectEmbeddingModule with DirectEmbeddi
           genApply(List(Ident(TermName(t.name.decodedName.toString))))
         // the type associated with the identifier will remain if we don't that
         case t @ Ident(n) =>
-          log("local variable: " + t, 3)
+          log("local variable: " + t, logLevel)
           Ident(n)
         case _ =>
           super.transform(tree)

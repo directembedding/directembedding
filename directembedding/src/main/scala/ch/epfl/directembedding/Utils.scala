@@ -59,21 +59,25 @@ trait DirectEmbeddingUtils extends MacroModule with TransformationUtils {
 
   def debugLevel: Int = 0
   val failCompilation: Boolean = false
-  val virtualizeFunctions: Boolean = false
-  val virtualizeVal: Boolean = false
+  val virtualizeFunctions: Boolean = true
+  val virtualizeVal: Boolean = true
 
   def logTree(t: Tree, level: Int = 0) = {
     log(s"$t", level)
     log(showRaw(t, printTypes = true), level + 1)
   }
 
+  def logStarred(msg: String, level: Int, tree: Tree = EmptyTree) = {
+    val len = msg.length + 2
+    log(s"*" * len, level)
+    log(s"* $msg", level)
+    log(s"*" * len, level)
+    logTree(tree, level)
+  }
+
   def logIndented[T](e: T, indent: Int, level: Int = 0) = if (debugLevel > level) {
     print(" " * indent)
     super.log(s"$e", level)
-  }
-
-  def importType(tpe: c.universe.Type): Tree = {
-    q"import ${c.parse(tpe.typeSymbol.fullName)}._"
   }
 
   def LogHereAndContinue(where: String)(t: Tree): Tree = {
