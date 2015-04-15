@@ -11,6 +11,7 @@ object DETransformer {
 
   def apply[C <: blackbox.Context, T, D <: DslConfig](c: C)(
     _dslName: String,
+    _typeMap: Map[c.universe.Type, c.universe.Type],
     postProcessing: Option[PostProcessing[c.type]],
     preProcessing: Option[PreProcessing[c.type]],
     debug: Boolean = false)(implicit tag: WeakTypeTag[D]): DETransformer[c.type, T] = {
@@ -24,6 +25,10 @@ object DETransformer {
       val preProcessor = preProcessing.getOrElse(new NullPreProcessing[c.type](c))
       val dslName: String = _dslName
       val configPath: Tree = dslConfig
+      override val typeMap: Map[String, Type] = _typeMap.map {
+        case (k, v) =>
+          (k.typeSymbol.fullName, v)
+      }
       override val debugLevel = if (debug) 2 else 0
       val logLevel: Int = 0
     }

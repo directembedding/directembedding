@@ -8,7 +8,7 @@ import ch.epfl.directembedding.test.example._
 class BasicSpec extends FlatSpec with ShouldMatchers with ExampleTester {
 
   "dsl" should "work object fields" in {
-    runTest[Int](
+    runTest(
       dsl {
         ObjectExample.valDef
       }) should be(ValDef)
