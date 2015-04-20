@@ -127,6 +127,11 @@ package object example {
       val config = "ch.epfl.directembedding.test.example"
       DETransformer[c.type, T, ExampleConfig](c)(
         "example.dsl",
+        Map(
+          c.typeTag[Int].tpe -> c.typeTag[MyInt].tpe,
+          c.typeTag[String].tpe -> c.typeTag[MyString].tpe,
+          c.typeTag[ThirdPartyClass].tpe -> c.typeTag[MyThirdPartyLibrary].tpe,
+          c.typeTag[ThirdPartyObject].tpe -> c.typeTag[MyThirdPartyObject].tpe),
         None,
         // Note the explicit `apply`, this is necessary.
         None,

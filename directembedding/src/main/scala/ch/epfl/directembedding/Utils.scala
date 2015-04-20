@@ -13,8 +13,12 @@ trait MacroModule {
 }
 
 trait DirectEmbeddingModule extends MacroModule {
-  import c.universe.Tree
+  import c.universe._
   val dslName: String
+
+  // We use Strings as keys to resolve aliased types
+  val typeMap: Map[String, Type]
+
   /**
    * Full name of configuration module
    */
@@ -54,7 +58,7 @@ trait DslConfig {
   def lift[T](e: T): Literal[T]
 }
 
-trait DirectEmbeddingUtils extends MacroModule with TransformationUtils {
+trait DirectEmbeddingUtils extends DirectEmbeddingModule with TransformationUtils {
   import c.universe._
 
   def debugLevel: Int = 0
@@ -62,12 +66,14 @@ trait DirectEmbeddingUtils extends MacroModule with TransformationUtils {
   val virtualizeFunctions: Boolean = true
   val virtualizeVal: Boolean = true
 
-  def logTree(t: Tree, level: Int = 0) = {
+  def logTree(t: Tree, level: Int = logLevel) = {
     log(s"$t", level)
     log(showRaw(t, printTypes = true), level + 1)
   }
 
-  def logStarred(msg: String, level: Int, tree: Tree = EmptyTree) = {
+  def logType(t: Type, level: Int = logLevel): Unit = log(showRaw(t), level)
+
+  def logStarred(msg: String, level: Int = logLevel, tree: Tree = EmptyTree) = {
     val len = msg.length + 2
     log(s"*" * len, level)
     log(s"* $msg", level)
@@ -75,7 +81,7 @@ trait DirectEmbeddingUtils extends MacroModule with TransformationUtils {
     logTree(tree, level)
   }
 
-  def logIndented[T](e: T, indent: Int, level: Int = 0) = if (debugLevel > level) {
+  def logIndented[T](e: T, indent: Int, level: Int = logLevel) = if (debugLevel > level) {
     print(" " * indent)
     super.log(s"$e", level)
   }
@@ -85,5 +91,18 @@ trait DirectEmbeddingUtils extends MacroModule with TransformationUtils {
     logTree(t)
     t
   }
+
+}
+
+trait TypeHelper extends MacroModule {
+  import c.universe._
+
+  private def name(s: Symbol): String = s.name.toString.trim
+
+  def equalSymbols(a: Symbol)(b: Symbol): Boolean =
+    name(a) == name(b)
+
+  def findMatchingSymbol(symbol: Symbol, typ: Type): Option[Symbol] =
+    typ.member(symbol.name).alternatives.find(equalSymbols(symbol))
 
 }

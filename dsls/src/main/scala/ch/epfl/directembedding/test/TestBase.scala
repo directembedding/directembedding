@@ -52,6 +52,12 @@ case class Infix_ValDef[T](t: Exp[T]) extends Exp[T]
 case object ClassCons extends Exp[ClassExample]
 case class TArgClassExampleCase[T]() extends Exp[T]
 
+case class IntPlus[T](self: Exp[T], that: Exp[Int]) extends Exp[Int]
+case class StringLength[T](self: Exp[T]) extends Exp[Int]
+case class StringConcat[T](self: Exp[T], that: Exp[String]) extends Exp[String]
+case class MyTArgs[T](self: Exp[_]) extends Exp[T]
+case class MyTArgsObject[T]() extends Exp[T]
+
 // Example Object with all corner cases.
 object ObjectExample {
   @reifyAs(ValDef)
@@ -119,4 +125,46 @@ class TArgClassExample[T] {
 @reifyAs(ClassCons)
 class ClassExample {
   val dummyVal: Int = 1
+}
+
+// **********************************
+// Standard and third-party libraries
+// **********************************
+class MyInt {
+  @reifyAs(IntPlus)
+  def +(x: Int): Int = ???
+}
+
+class MyString {
+  @reifyAs(StringLength)
+  def length(): Int = ???
+
+  @reifyAs(StringConcat)
+  def concat(that: String): String = ???
+}
+
+trait ThirdPartyObject
+
+object ThirdPartyObject extends ThirdPartyObject {
+  def targs[T]: T = ???
+}
+
+case class ThirdPartyClass() {
+  def targs[T]: T = ???
+}
+
+trait MyThirdPartyObject {
+  @reifyAs(MyTArgsObject)
+  def targs[T]: T = ???
+}
+
+class MyThirdPartyLibrary() {
+  // Note the explicit parenthesis, the body is reified
+  // exactly as it appears in the annotation
+  @reifyAs(ThirdPartyClass())
+  def apply(): MyThirdPartyLibrary = ???
+
+  @reifyAs(MyTArgs)
+  def targs[T]: T = ???
+
 }
