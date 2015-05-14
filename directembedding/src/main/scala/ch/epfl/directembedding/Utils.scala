@@ -15,9 +15,16 @@ trait MacroModule {
 trait DirectEmbeddingModule extends MacroModule {
   import c.universe._
   val dslName: String
+  val failCompilation: Boolean = false
+  val virtualizeFunctions: Boolean = false
+  val virtualizeVal: Boolean = true
+  val flattenCurriedFunctions: Boolean = true
 
   // We use Strings as keys to resolve aliased types
   val typeMap: Map[String, Type]
+  // To override lift with some custom lift
+  val customLifts: Map[Type, String]
+  val liftIgnore: Set[Type]
 
   /**
    * Full name of configuration module
@@ -30,6 +37,11 @@ trait DirectEmbeddingModule extends MacroModule {
  * Skeleton for Dsl config type
  */
 trait DslConfig {
+  val failCompilation: Boolean = false
+  val virtualizeVal: Boolean = true
+  val virtualizeFunctions: Boolean = true
+  val flattenCurriedFunctions: Boolean = true
+
   /**
    * The type which literals get lifted to
    * @tparam T
@@ -42,12 +54,8 @@ trait DslConfig {
   type Rep[T]
 
   /**
-   * Endpoint for DSL. Mandatory.
-   * @param ast Constructed ast after applying directembedding transformation
-   * @tparam T
-   * @return Result type of the block
+   * Method compile needs to be implemented
    */
-  def dsl[T](ast: Rep[T]): T
 
   /**
    * The method invoked for lifting literals. Mandatory.
@@ -62,9 +70,6 @@ trait DirectEmbeddingUtils extends DirectEmbeddingModule with TransformationUtil
   import c.universe._
 
   def debugLevel: Int = 0
-  val failCompilation: Boolean = false
-  val virtualizeFunctions: Boolean = true
-  val virtualizeVal: Boolean = true
 
   def logTree(t: Tree, level: Int = logLevel) = {
     log(s"$t", level)

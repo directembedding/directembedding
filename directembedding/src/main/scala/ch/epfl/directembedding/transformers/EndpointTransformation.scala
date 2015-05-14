@@ -10,7 +10,7 @@ trait EndpointTransformation extends DirectEmbeddingModule with DirectEmbeddingU
     //    ${c.parse(dslEndpointMethod)}($tree)
     def apply(tree: Tree): Tree = {
       q"""
-          $configPath.dsl($tree)
+          $configPath.compile($tree)
        """
     }
   }

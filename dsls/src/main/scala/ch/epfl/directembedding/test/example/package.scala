@@ -8,7 +8,9 @@ import scala.language.experimental.macros
 import scala.reflect.macros.blackbox.Context
 
 package object example {
-  def dsl[T](block: T): T = macro implementations.liftRep[T]
+  def dsl[T](block: T): T = macro implementations.liftRepNoDebug[T]
+
+  def dslDebug[T](block: T): T = macro implementations.liftRepDebug[T]
 
   val Q = new java.util.concurrent.LinkedBlockingQueue[Exp[_]]()
 
@@ -26,7 +28,7 @@ package object example {
     type Literal[T] = Const[T]
     type Rep[T] = Exp[T]
 
-    def dsl[T](e: Exp[T]): T = {
+    def compile[T](e: Exp[T]): T = {
       Q.add(e)
       ???
     }
@@ -121,24 +123,32 @@ package object example {
     def __valDef(v: Int): Int = ???
   }
 
+  object Config extends ExampleConfig
+
   object implementations {
-    def liftRep[T](c: Context)(block: c.Expr[T]): c.Expr[T] = {
+    def liftRepDebug[T](c: Context)(block: c.Expr[T]): c.Expr[T] =
+      liftRep(true)(c)(block)
+
+    def liftRepNoDebug[T](c: Context)(block: c.Expr[T]): c.Expr[T] =
+      liftRep(false)(c)(block)
+
+    def liftRep[T](debug: Boolean)(c: Context)(block: c.Expr[T]): c.Expr[T] = {
       import c.universe._
       val config = "ch.epfl.directembedding.test.example"
       DETransformer[c.type, T, ExampleConfig](c)(
         "example.dsl",
+        Config,
         Map(
           c.typeTag[Int].tpe -> c.typeTag[MyInt].tpe,
           c.typeTag[String].tpe -> c.typeTag[MyString].tpe,
           c.typeTag[ThirdPartyClass].tpe -> c.typeTag[MyThirdPartyLibrary].tpe,
           c.typeTag[ThirdPartyObject].tpe -> c.typeTag[MyThirdPartyObject].tpe),
+        Map.empty,
+        Set.empty,
         None,
         // Note the explicit `apply`, this is necessary.
         None,
-        block.tree.find(_.equalsStructure(
-          q"""
-             "debug"
-          """)).isDefined).apply(block)
+        if (debug) 2 else 0).apply(block)
     }
   }
 }

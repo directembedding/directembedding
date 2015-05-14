@@ -17,18 +17,30 @@ trait LiftLiteralTransformation extends DirectEmbeddingModule with DirectEmbeddi
   class LiftLiteralTransformer(toLift: List[Symbol])
     extends Transformer {
 
-    def genApply(t: List[Tree]) =
-      q"$configPath.lift(..$t)"
+    def genApply(t: List[Tree], name: TermName = TermName("lift")) =
+      q"$configPath.$name(..$t)"
+
+    def genApplyWithName(t: List[Tree], name: String = "lift") =
+      genApply(t, TermName(name))
+
+    def genApplyForType(t: List[Tree], tpe: Type) = {
+      val name = customLifts.collect {
+        case (customType, customName) if tpe <:< customType => customName
+      }.headOption.getOrElse("lift")
+
+      genApply(t, TermName(name))
+    }
 
     override def transform(tree: Tree): Tree = {
       tree match {
-        case t @ Literal(Constant(_)) =>
-          genApply(List(t))
-        case t @ Ident(_) if toLift.contains(t.symbol) =>
-          genApply(List(Ident(TermName(t.name.decodedName.toString))))
+        case _: ClassDef => tree
+        case t @ Literal(Constant(_)) if !liftIgnore.exists(ignoreType => t.tpe.widen <:< ignoreType) =>
+          genApplyForType(List(t), tree.tpe)
+        case t @ Ident(_) if toLift.contains(t.symbol) && !liftIgnore.exists(ignoreType => tree.tpe.widen <:< ignoreType) =>
+          genApplyForType(List(Ident(TermName(t.name.decodedName.toString))), t.tpe.widen)
         // the type associated with the identifier will remain if we don't that
         case t @ Ident(n) =>
-          log("local variable: " + t, logLevel)
+          log(s"local variable: $t, type=${t.tpe}", logLevel)
           Ident(n)
         case _ =>
           super.transform(tree)
