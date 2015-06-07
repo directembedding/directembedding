@@ -1,6 +1,6 @@
 package ch.epfl.directembedding
 
-import ch.epfl.directembedding.transformers.ReifyAsEmbedding
+import ch.epfl.directembedding.transformers.EmbeddingTransformation
 import ch.epfl.yinyang.transformers.LanguageVirtualization
 import ch.epfl.yinyang.EmbeddedControls
 
